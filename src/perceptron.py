@@ -17,6 +17,9 @@ if __name__ == "__main__":
     X_train_tfidf = tfidf_tf.fit_transform(X_train_counts)
 
     # Train the model
+    # Train a simple perceptron on a vector representation of the documents in these
+    # two classes. A vector is nothing more than a container (an ordered list of a
+    # finite dimension) for numerical values.
     perceptron.fit(X_train_tfidf, train.target)
 
     # Test the model
@@ -25,6 +28,10 @@ if __name__ == "__main__":
                  "White blood cells fight off infections",
                  "The reverend had a heart attack in church"]
 
+    # The vector representation is based on a statistical representation of words
+    # called TF.IDF, which we discuss in section 1.3.2. For now, just assume TF.IDF is a
+    # magic trick that turns documents into vectors that can be fed to a machine
+    # learning algorithm.
     X_test_counts = cv.transform(test_docs)
     X_test_tfidf = tfidf_tf.transform(X_test_counts)
 
