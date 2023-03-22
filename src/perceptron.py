@@ -40,3 +40,7 @@ if __name__ == "__main__":
 
     for doc, category in zip(test_docs, pred):
         print(f"{doc!r} => {train.target_names[category]}")
+    # Apparently, these few short texts can be linearly separated by a simple, weight-based
+    # algorithm. This example is a huge simplification: the topics chosen are quite distinct.
+    # In real life, linear algorithms fall short in separating topics that overlap and share similar
+    # vocabulary.
