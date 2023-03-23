@@ -6,6 +6,9 @@ from keras.utils import np_utils
 
 from src.utils import get_data_path
 
+# log the device placement
+# tf.debugging.set_log_device_placement(True)
+
 if __name__ == "__main__":
     # Load the data and map the tags to 1 and 0
     fields = ["text", "tag"]
@@ -30,6 +33,7 @@ if __name__ == "__main__":
     # Preparing the training data
     docs = training_data["text"]
 
+    # 
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(docs)
 
@@ -68,5 +72,13 @@ if __name__ == "__main__":
                   metrics=["accuracy"])
 
     print("Training...")
-    model.fit(X_train, y_train, epochs=10, batch_size=256, validation_split=0.1,
-              shuffle=False, verbose=2)
+    model.fit(
+        X_train,
+        y_train,
+        epochs=8,
+        # batch_size=256,
+        validation_split=0.1,
+        shuffle=False,
+        verbose=2,
+        use_multiprocessing=True,
+    )
