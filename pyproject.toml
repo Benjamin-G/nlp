@@ -73,3 +73,4 @@ max-complexity = 10
 # Declare the default aliases.
 numpy = "np"
 pandas = "pd"
+tensorflow = "tf"
