@@ -1,15 +1,29 @@
+import argparse
+import sys
+
 import pandas as pd
+from keras import models
 from keras.layers.core import Activation, Dense
 from keras.models import Sequential
 from keras.preprocessing.text import Tokenizer
 from keras.utils import np_utils
 
-from src.utils import get_data_path
+from utils import SPACER, get_data_path, get_models_path
 
 # log the device placement
 # tf.debugging.set_log_device_placement(True)
 
-if __name__ == "__main__":
+# parsers if needed
+parser = argparse.ArgumentParser()
+parser.add_argument("-T", "--test", action=argparse.BooleanOptionalAction)
+args = parser.parse_args()
+
+
+#
+# print(args.new)
+
+
+def run():
     # Load the data and map the tags to 1 and 0
     fields = ["text", "tag"]
     data = pd.read_csv(get_data_path("movie_review.csv"), usecols=fields)
@@ -24,25 +38,47 @@ if __name__ == "__main__":
     data = data.astype(dtypes)
     print("Loaded data:")
     print(data.info())
+    print(SPACER)
 
     # Split the data into training and test sets
     # my laptop does not have much memory
-    training_data = data.sample(frac=0.25)
-    rest_part_25 = data.drop(training_data.index)
+    sample_data = data.sample(frac=0.25)
 
     # Preparing the training data
-    docs = training_data["text"]
+    sample_docs = sample_data["text"]
 
-    # 
     tokenizer = Tokenizer()
-    tokenizer.fit_on_texts(docs)
+    tokenizer.fit_on_texts(sample_docs)
 
     # Convert the text to a matrix of token counts
-    X_train = tokenizer.texts_to_matrix(docs, mode="binary")
-    y_train = np_utils.to_categorical(training_data["label"])
+    x_train = tokenizer.texts_to_matrix(sample_docs, mode="binary")
+    y_train = np_utils.to_categorical(sample_data["label"])
+
+    print("Test data:" if args.test else "Sample data:")
+    print(sample_data.info())
+    print(round(sys.getsizeof(x_train) / (1024 * 1024 * 1024), 2), "GB")
+    print(sys.getsizeof(y_train), "bytes")
+    print(len(x_train))
+    print(len(x_train[0]))
+    print(SPACER)
+
+    # Run the test
+    # Still not working
+    if args.test:
+        model = models.load_model(get_models_path("mlp_example_movie.h5"))
+        model.summary()
+        print(SPACER + "Evaluting..." + SPACER)
+        results = model.evaluate(
+            x_train,
+            y_train,
+            batch_size=256,
+        )
+        print("test loss, test acc:", results)
+
+        return
 
     # Build the model
-    input_dim = X_train.shape[1]
+    input_dim = x_train.shape[1]
     nb_classes = y_train.shape[1]
 
     model = Sequential()
@@ -71,14 +107,26 @@ if __name__ == "__main__":
                   optimizer="adam",
                   metrics=["accuracy"])
 
-    print("Training...")
-    model.fit(
-        X_train,
+    model.summary()
+
+    print(SPACER + "Training..." + SPACER)
+    history = model.fit(
+        x_train,
         y_train,
         epochs=8,
-        # batch_size=256,
+        batch_size=256,
         validation_split=0.1,
         shuffle=False,
         verbose=2,
         use_multiprocessing=True,
     )
+
+    hist_df = pd.DataFrame(history.history)
+    print(SPACER + hist_df)
+
+    print(SPACER + "Saving Model..." + SPACER)
+    model.save(get_models_path("mlp_example_movie.h5"))
+
+
+if __name__ == "__main__":
+    run()
