@@ -51,15 +51,15 @@ def run():
     tokenizer.fit_on_texts(sample_docs)
 
     # Convert the text to a matrix of token counts
-    x_train = tokenizer.texts_to_matrix(sample_docs, mode="binary")
-    y_train = np_utils.to_categorical(sample_data["label"])
+    x = tokenizer.texts_to_matrix(sample_docs, mode="binary")
+    y = np_utils.to_categorical(sample_data["label"])
 
     print("Test data:" if args.test else "Sample data:")
     print(sample_data.info())
-    print(round(sys.getsizeof(x_train) / (1024 * 1024 * 1024), 2), "GB")
-    print(sys.getsizeof(y_train), "bytes")
-    print(len(x_train))
-    print(len(x_train[0]))
+    print(round(sys.getsizeof(x) / (1024 * 1024 * 1024), 2), "GB")
+    print(sys.getsizeof(y), "bytes")
+    print(len(x))
+    print(len(x[0]))
     print(SPACER)
 
     # Run the test
@@ -67,19 +67,25 @@ def run():
     if args.test:
         model = models.load_model(get_models_path("mlp_example_movie.h5"))
         model.summary()
-        print(SPACER + "Evaluting..." + SPACER)
-        results = model.evaluate(
-            x_train,
-            y_train,
-            batch_size=256,
+        print(SPACER + "Testing..." + SPACER)
+        prediction = model.predict(
+            x,
         )
-        print("test loss, test acc:", results)
+        print("prediction shape:", prediction.shape)
+        print(prediction)
+        # for i in range(10):
+        #     prediction = model.predict(np.array([x[i]]))
+        #     predicted_label = np.argmax(prediction[0])
+        #     print("Actual label:" + x.iloc[i])
+        #     print("Predicted label: " + predicted_label)
+        #     print(prediction)
+        #     print(SPACER)
 
         return
 
     # Build the model
-    input_dim = x_train.shape[1]
-    nb_classes = y_train.shape[1]
+    input_dim = x.shape[1]
+    nb_classes = y.shape[1]
 
     model = Sequential()
     model.add(Dense(128, input_dim=input_dim))
@@ -111,18 +117,19 @@ def run():
 
     print(SPACER + "Training..." + SPACER)
     history = model.fit(
-        x_train,
-        y_train,
+        x,
+        y,
         epochs=8,
         batch_size=256,
         validation_split=0.1,
         shuffle=False,
         verbose=2,
-        use_multiprocessing=True,
+        # use_multiprocessing=True,
     )
 
     hist_df = pd.DataFrame(history.history)
-    print(SPACER + hist_df)
+    print(SPACER)
+    print(hist_df)
 
     print(SPACER + "Saving Model..." + SPACER)
     model.save(get_models_path("mlp_example_movie.h5"))
