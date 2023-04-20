@@ -87,6 +87,7 @@ def run():
     input_dim = x.shape[1]
     nb_classes = y.shape[1]
 
+    # a Sequential model, which defines a container for a stacked set of layers, and facilities for defining layers.
     model = Sequential()
     model.add(Dense(128, input_dim=input_dim))
 
@@ -100,12 +101,13 @@ def run():
     # 29/29 - 0s - loss: 0.6973 - accuracy: 0.4933 - val_loss: 0.6969 - val_accuracy: 0.4600 - 
     # 345ms/epoch - 12ms/step
 
+    # networks with more than two layers between their input and output layer may be deemed deep.
     # add 10 layers ReLU
     for _ in range(10):
         model.add(Activation("relu"))
         model.add(Dense(128))
     # Epoch 10/10 29/29 - 0s - loss: 4.2112e-05 - accuracy: 1.0000 - val_loss: 5.0735 - val_accuracy: 0.6000 - 
-    # 332ms/epoch - 11ms/step
+    # 332ms/epoch - 11ms/st
 
     model.add(Dense(nb_classes))
     model.add(Activation("softmax"))
