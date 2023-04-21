@@ -5,7 +5,7 @@ import pandas as pd
 from keras import Sequential
 from keras.layers import Convolution1D, Dense, Dropout, Embedding, Flatten
 from keras.preprocessing.text import Tokenizer
-from keras.utils import pad_sequences
+from keras.utils import pad_sequences, plot_model
 from sklearn.model_selection import train_test_split
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
@@ -28,7 +28,7 @@ def run():
 
     data = data.astype(dtypes)
 
-    sample_data = data.sample(frac=0.25)
+    sample_data = data.sample(frac=0.50)
 
     max_words = 1000
     tokenizer = Tokenizer(num_words=max_words, split=" ")
@@ -64,16 +64,29 @@ def run():
     # also known as the kernel size.
     model.add(Flatten())
     model.add(Dropout(0.2))
+
+    # Dense layers connect all incoming neurons from a previous layer to 
+    # neurons in the next layer; they are fully connected. 
     model.add(Dense(2, activation="sigmoid"))
 
     model.summary()
-    # plot_model(model, to_file="model.png")
 
+    # Export to png
+    plot_model(model, to_file="../data/cnn_sentiment_analysis.png")
+
+    # we “compile” it. This means we prepare the for training by specifying a loss function (a real-valued function
+    # that computes the mismatch between predictions the model makes and the labels it should assign according to the
+    # training data) plus a numerical optimizer algorithm carrying out the gradient descent process and an evaluation
+    # metric, which is used to perform an intermediate evaluation of the model during training and which specifies
+    # the loss of the loss function (like accuracy, or mean squared error).
     model.compile(loss="binary_crossentropy",
                   optimizer="adam",
                   metrics=["accuracy"])
 
-    model.fit(X_train, y_train, epochs=3, batch_size=64)
+    # In the “fit” step, we can determine the size of this held-out portion of the training data (
+    # validation_split=0.1: use 10% of the training data for testing), the number of training epochs (epochs=10), 
+    # and the size of the batches of training data that are taken into account at every training step (batch_size=32).
+    model.fit(X_train, y_train, epochs=10, batch_size=64)
 
     scores = model.evaluate(X_test, y_test, verbose=0)
     print("Accuracy: %.2f%%" % (scores[1] * 100))
