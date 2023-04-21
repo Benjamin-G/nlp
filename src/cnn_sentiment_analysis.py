@@ -62,7 +62,10 @@ def run():
     # The values (64,32,16) were chosen arbitrarily; good practice would be to estimate these values
     # (hyperparameters) on some held-out validation data.
     model.add(Convolution1D(64, 3, padding="same"))
+    # Since the filter length (the kernel size) is 3, we start with the first three words (or rows in the matrix)
     model.add(Convolution1D(32, 3, padding="same"))
+    # The second convolutional layer receives this 2D matrix as input. Since it is a 1D convolutional layer,
+    # it applies its 32-fold convolution to the 65 64-dimensional entries.
     model.add(Convolution1D(16, 3, padding="same"))
     # Every layer specifies the dimensionality of the output space (64,32,16) and the size of every filter (3),
     # also known as the kernel size.
@@ -94,7 +97,13 @@ def run():
     # In the “fit” step, we can determine the size of this held-out portion of the training data (
     # validation_split=0.1: use 10% of the training data for testing), the number of training epochs (epochs=10), 
     # and the size of the batches of training data that are taken into account at every training step (batch_size=32).
-    model.fit(X_train, y_train, epochs=10, batch_size=64)
+    model.fit(
+        X_train,
+        y_train,
+        # An epoch represents a full sweep through the training data. 
+        epochs=10,
+        batch_size=64,
+    )
 
     scores = model.evaluate(X_test, y_test, verbose=0)
     print("Accuracy: %.2f%%" % (scores[1] * 100))
