@@ -28,7 +28,7 @@ def run():
 
     data = data.astype(dtypes)
 
-    sample_data = data.sample(frac=0.50)
+    sample_data = data.sample(frac=0.25)
 
     max_words = 1000
     tokenizer = Tokenizer(num_words=max_words, split=" ")
@@ -52,9 +52,13 @@ def run():
     embedding_vector_length = 100
 
     model = Sequential()
-    model.add(Embedding(
-        max_words, embedding_vector_length,
-        input_length=X.shape[1]))
+    model.add(
+        Embedding(
+            max_words,
+            embedding_vector_length,
+            input_length=X.shape[1],
+        ),
+    )
     # The values (64,32,16) were chosen arbitrarily; good practice would be to estimate these values
     # (hyperparameters) on some held-out validation data.
     model.add(Convolution1D(64, 3, padding="same"))
@@ -79,9 +83,13 @@ def run():
     # training data) plus a numerical optimizer algorithm carrying out the gradient descent process and an evaluation
     # metric, which is used to perform an intermediate evaluation of the model during training and which specifies
     # the loss of the loss function (like accuracy, or mean squared error).
-    model.compile(loss="binary_crossentropy",
-                  optimizer="adam",
-                  metrics=["accuracy"])
+    model.compile(
+        loss="binary_crossentropy",
+        # inary cross-entropy. Cross-entropy-based loss expresses how well a classification model performs
+        # when producing probabilities (values between 0 and 1).
+        optimizer="adam",
+        metrics=["accuracy"],
+    )
 
     # In the “fit” step, we can determine the size of this held-out portion of the training data (
     # validation_split=0.1: use 10% of the training data for testing), the number of training epochs (epochs=10), 
