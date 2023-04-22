@@ -66,12 +66,18 @@ def run():
     )
     model.fit(X_train, y_train, epochs=10, batch_size=32)
 
-    # preds = model.predict(X_test)[0]
-    # for p in preds:
-    #     m = np.argmax(p)
-    #     print(enc.inverse_transform(m))
+    # Encoded classes
+    print(list(enc.classes_))
+    preds = model.predict(X_test)[0]
+    for p in preds:
+        m = np.argmax(p)
+        # print(p)
+        # print(m)
+        print(enc.inverse_transform([m]))
 
     print(model.evaluate(X_test, y_test, batch_size=32))
+    # The two final numerical scores express the loss and accuracy of the classifier for the test data; the 1.0 
+    # indicates a 100% accuracy score.
 
 
 if __name__ == "__main__":
