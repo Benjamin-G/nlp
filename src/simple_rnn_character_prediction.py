@@ -71,9 +71,7 @@ def run():
     preds = model.predict(X_test)[0]
     for p in preds:
         m = np.argmax(p)
-        # print(p)
-        # print(m)
-        print(enc.inverse_transform([m]))
+        print(enc.inverse_transform([m])[0])
 
     print(model.evaluate(X_test, y_test, batch_size=32))
     # The two final numerical scores express the loss and accuracy of the classifier for the test data; the 1.0 
