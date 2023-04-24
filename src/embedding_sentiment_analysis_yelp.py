@@ -13,7 +13,6 @@ from sklearn.model_selection import train_test_split
 
 def save_embedding(outputFile, weights, vocabulary):
     rev = {v: k for k, v in vocabulary.items()}
-    # rev = vocabulary
     with codecs.open(outputFile, "w") as f:
         f.write(str(len(vocabulary)) + " " + str(weights.shape[1]) + "\n")
         for index in sorted(rev.keys()):
@@ -80,6 +79,7 @@ EMBEDDING_PATH = "../data/test/yelp_embedding_labeled.txt"
 
 
 def run():
+    # dataset = load_dataset("yelp_polarity") from HuggingFace
     df = pd.read_parquet("../data/yelp_polarity.parquet.gzip")
     df = df.sample(frac=0.15)
     train, test = train_test_split(df, test_size=0.2)
@@ -104,10 +104,15 @@ def run():
 
 
 def analysis():
+    """
+    Our program lists the three nearest neighbors for every word based on its derived vector representation
+    :return: 
+    :rtype: 
+    """
     w2v = KeyedVectors.load_word2vec_format(
         os.path.join(EMBEDDING_PATH), binary=False, unicode_errors="ignore")
 
-    for w in sorted(w2v.wv.vocab):
+    for w in sorted(w2v.key_to_index):
         print(w, w2v.most_similar(w, topn=3))
 
 
