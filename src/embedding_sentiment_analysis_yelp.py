@@ -1,14 +1,14 @@
 import codecs
-import os
 import re
 
 import numpy as np
 import pandas as pd
-from gensim.models import KeyedVectors
 from keras.layers import Dense, Embedding, Flatten
 from keras.models import Sequential
 from keras.utils import pad_sequences
 from sklearn.model_selection import train_test_split
+
+from src.utils import list_vectors
 
 
 def save_embedding(outputFile, weights, vocabulary):
@@ -103,19 +103,6 @@ def run():
     save_embedding(EMBEDDING_PATH, embedding.get_weights()[0], vocab)
 
 
-def analysis():
-    """
-    Our program lists the three nearest neighbors for every word based on its derived vector representation
-    :return: 
-    :rtype: 
-    """
-    w2v = KeyedVectors.load_word2vec_format(
-        os.path.join(EMBEDDING_PATH), binary=False, unicode_errors="ignore")
-
-    for w in sorted(w2v.key_to_index):
-        print(w, w2v.most_similar(w, topn=3))
-
-
 if __name__ == "__main__":
     run()
-    analysis()
+    list_vectors(EMBEDDING_PATH)
