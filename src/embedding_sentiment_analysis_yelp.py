@@ -8,7 +8,7 @@ from keras.models import Sequential
 from keras.utils import pad_sequences
 from sklearn.model_selection import train_test_split
 
-from src.utils import get_data_path
+from src.utils import get_data_path, list_vectors
 
 
 def save_embedding(outputFile, weights, vocabulary):
@@ -27,8 +27,8 @@ def clean_text(sentence):
     sentence = sentence.lower()
     # sentence = sentence.encode('ascii', 'ignore').decode()
     sentence = re.sub(r"[-()\"#/@;:<>{}=~.|?,*]", " ", sentence)
-    sentence = sentence.replace('\\n', '')
-    sentence = sentence.replace('\\', '')
+    sentence = sentence.replace("\\n", "")
+    sentence = sentence.replace("\\", "")
     # normalize spacing
     sentence = " ".join(sentence.split())
 
@@ -132,7 +132,7 @@ def run():
     test_data, test_labels = process_test_data(test, vocab, max_len)
 
     vocab_size = len(vocab)
-    print(vocab)
+    # print(vocab)
     print("Vocab size: ", vocab_size)
 
     # Build model
@@ -147,6 +147,7 @@ def run():
     """
 
     embedding_matrix = load_embedding_zipped("glove.6B.100d.txt", vocab, embedding_dimension)
+    # print(embedding_matrix)
     embedding = Embedding(len(vocab) + 1,
                           embedding_dimension,
                           weights=[embedding_matrix],
@@ -170,8 +171,9 @@ def run():
     20 Epochs
     With cleaning, pretrained 0.7447368502616882
     With cleaning, task-specific 0.8675438761711121
-    
     TODO Stem? or more Epochs or more Dimensions
+    https://keras.io/examples/nlp/pretrained_word_embeddings/
+    https://towardsdatascience.com/a-guide-to-cleaning-text-in-python-943356ac86ca
     """
 
     save_embedding(EMBEDDING_PATH, embedding.get_weights()[0], vocab)
@@ -179,4 +181,4 @@ def run():
 
 if __name__ == "__main__":
     run()
-    # list_vectors(EMBEDDING_PATH)
+    list_vectors(EMBEDDING_PATH)
