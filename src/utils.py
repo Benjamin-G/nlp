@@ -31,20 +31,21 @@ def get_models_path(filename: str) -> str:
 SPACER = f'\n{"-" * 40}\n'
 
 
-def list_vectors(EMBEDDING_PATH):
+def list_vectors(embedding_path):
     """
     Our program lists the three nearest neighbors for every word based on its derived vector representation
     :return:
     :rtype:
     """
     w2v = KeyedVectors.load_word2vec_format(
-        os.path.join(EMBEDDING_PATH), binary=False, unicode_errors="ignore")
+        os.path.join(embedding_path), binary=False, unicode_errors="ignore")
 
     for w in sorted(w2v.key_to_index):
         print(w, w2v.most_similar(w, topn=3))
 
 
 def tsne_plot(model, max_words=100):
+    print(model)
     labels = []
     tokens = []
 

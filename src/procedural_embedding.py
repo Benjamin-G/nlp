@@ -8,11 +8,11 @@ from src.utils import tsne_plot
 
 def run():
     docs = [
-        "Chuck Berry rolled over everyone who came before him ? and turned up everyone who came after.We'll miss you",
-        "Help protect the progress we've made in helping millions ofAmericans get covered.",
+        "Chuck Berry rolled over everyone who came before him ? and turned up everyone who came after. We'll miss you",
+        "Help protect the progress we've made in helping millions of Americans get covered.",
         "Let's leave our children and grandchildren a planet that's healthier than the one we have today.",
         "The American people are waiting for Senate leaders to do their jobs.",
-        "We must take bold steps now ? climate change is already impacting millions of people.",
+        "We must take bold steps now? climate change is already impacting millions of people.",
         "Don't forget to watch Larry King tonight",
         "Ivanka is now on Twitter - You can follow her",
         "Last night Melania and I attended the Skating with the Stars Gala at Wollman Rink in Central Park",
