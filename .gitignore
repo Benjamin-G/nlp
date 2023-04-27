@@ -133,6 +133,5 @@ dmypy.json
 /data/test/
 /data/glove.6B.50d.txt
 /data/glove.6B.100d.txt
-/data/glove.6B.200d.txtdata/ 
 /data/glove.6B.200d.txt
 /data/yelp_polarity.parquet.gzip
