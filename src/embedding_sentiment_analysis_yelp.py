@@ -1,6 +1,5 @@
 import codecs
 import re
-import zipfile
 
 import numpy as np
 import pandas as pd
@@ -22,6 +21,18 @@ def save_embedding(outputFile, weights, vocabulary):
             for i in range(len(weights[index])):
                 f.write(str(weights[index][i]) + " ")
             f.write("\n")
+
+
+def clean_text(sentence):
+    sentence = sentence.lower()
+    # sentence = sentence.encode('ascii', 'ignore').decode()
+    sentence = re.sub(r"[-()\"#/@;:<>{}=~.|?,*]", " ", sentence)
+    sentence = sentence.replace('\\n', '')
+    sentence = sentence.replace('\\', '')
+    # normalize spacing
+    sentence = " ".join(sentence.split())
+
+    return sentence
 
 
 def create_vocabulary(vocabulary, sentences):
@@ -78,18 +89,14 @@ def process_test_data(df, vocab, max_len):
 
 def load_embedding_zipped(f, vocab, embedding_dimension):
     embedding_index = {}
-    with zipfile.ZipFile(get_data_path(f)) as z:
-        with z.open("glove.6B.100d.txt") as f:
-            n = 0
-            for line in f:
-                if n:
-                    values = line.split()
-                    word = values[0]
-                    if word in vocab:
-                        coefs = np.asarray(values[1:], dtype='float32')
-                        embedding_index[word] = coefs
-                n += 1
-    z.close()
+
+    with open(get_data_path(f), encoding="utf8") as f:
+        for line in f:
+            word, coefs = line.split(maxsplit=1)
+            coefs = np.fromstring(coefs, "f", sep=" ")
+            embedding_index[word] = coefs
+
+    print("Found %s word vectors." % len(embedding_index))
 
     # Prepare embedding matrix
     embedding_matrix = np.zeros((len(vocab) + 1, embedding_dimension))
@@ -116,6 +123,7 @@ def run():
     # dataset = load_dataset("yelp_polarity") from HuggingFace
     df = pd.read_parquet("../data/yelp_polarity.parquet.gzip")
     df = df.sample(frac=0.15)
+    df["text"] = df["text"].map(clean_text)
     train, test = train_test_split(df, test_size=0.2)
     print(train.info())
     print(test.info())
@@ -135,9 +143,10 @@ def run():
     embedding_dimension = 100
     """
     pretrained external embeddings
+    I think this data set does not have enough data to train the embeddings
     """
 
-    embedding_matrix = load_embedding_zipped("glove.6B.zip", vocab, embedding_dimension)
+    embedding_matrix = load_embedding_zipped("glove.6B.100d.txt", vocab, embedding_dimension)
     embedding = Embedding(len(vocab) + 1,
                           embedding_dimension,
                           weights=[embedding_matrix],
@@ -147,7 +156,7 @@ def run():
     """
     task-specific embeddings
     """
-    embedding = Embedding(len(vocab), embedding_dimension, input_length=max_len)
+    # embedding = Embedding(len(vocab), embedding_dimension, input_length=max_len)
     model.add(embedding)
 
     model.add(Flatten())
@@ -157,6 +166,13 @@ def run():
 
     loss, accuracy = model.evaluate(test_data, test_labels, verbose=0)
     print(accuracy)
+    """
+    20 Epochs
+    With cleaning, pretrained 0.7447368502616882
+    With cleaning, task-specific 0.8675438761711121
+    
+    TODO Stem? or more Epochs or more Dimensions
+    """
 
     save_embedding(EMBEDDING_PATH, embedding.get_weights()[0], vocab)
 
