@@ -131,3 +131,6 @@ dmypy.json
 
 /testing.ipynb
 /data/test/
+/data/glove.6B.50d.txt
+/data/glove.6B.100d.txt
+/data/glove.6B.200d.txt
