@@ -132,6 +132,8 @@ def run():
 
     print(model.summary())
 
+    # But to obtain truly meaningful and convincing results, 
+    # the model should be trained on much larger amounts of data, for many more iterations.
     model.fit(
         generator(word_target, word_context, labels, 100),
         steps_per_epoch=100,
