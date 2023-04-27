@@ -1,5 +1,6 @@
 import codecs
 import re
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -8,7 +9,7 @@ from keras.models import Sequential
 from keras.utils import pad_sequences
 from sklearn.model_selection import train_test_split
 
-from src.utils import list_vectors
+from src.utils import get_data_path
 
 
 def save_embedding(outputFile, weights, vocabulary):
@@ -75,6 +76,39 @@ def process_test_data(df, vocab, max_len):
     return data, np.array(labels)
 
 
+def load_embedding_zipped(f, vocab, embedding_dimension):
+    embedding_index = {}
+    with zipfile.ZipFile(get_data_path(f)) as z:
+        with z.open("glove.6B.100d.txt") as f:
+            n = 0
+            for line in f:
+                if n:
+                    values = line.split()
+                    word = values[0]
+                    if word in vocab:
+                        coefs = np.asarray(values[1:], dtype='float32')
+                        embedding_index[word] = coefs
+                n += 1
+    z.close()
+
+    # Prepare embedding matrix
+    embedding_matrix = np.zeros((len(vocab) + 1, embedding_dimension))
+    hits = 0
+    misses = 0
+    for word, i in vocab.items():
+        embedding_vector = embedding_index.get(word)
+        if embedding_vector is not None:
+            # Words not found in embedding index will be all-zeros.
+            # This includes the representation for "padding" and "OOV"
+            embedding_matrix[i] = embedding_vector
+            hits += 1
+        else:
+            misses += 1
+
+    print("Converted %d words (%d misses)" % (hits, misses))
+    return embedding_matrix
+
+
 EMBEDDING_PATH = "../data/test/yelp_embedding_labeled.txt"
 
 
@@ -89,13 +123,37 @@ def run():
     data, labels, vocab = process_training_data(train, max_len)
     test_data, test_labels = process_test_data(test, vocab, max_len)
 
+    vocab_size = len(vocab)
+    print(vocab)
+    print("Vocab size: ", vocab_size)
+
+    # Build model
     model = Sequential()
-    embedding = Embedding(len(vocab), 100, input_length=max_len)
+
+    # Download GloVe from
+    # http://nlp.stanford.edu/data/glove.6B.zip
+    embedding_dimension = 100
+    """
+    pretrained external embeddings
+    """
+
+    embedding_matrix = load_embedding_zipped("glove.6B.zip", vocab, embedding_dimension)
+    embedding = Embedding(len(vocab) + 1,
+                          embedding_dimension,
+                          weights=[embedding_matrix],
+                          input_length=max_len,
+                          trainable=False)
+
+    """
+    task-specific embeddings
+    """
+    embedding = Embedding(len(vocab), embedding_dimension, input_length=max_len)
     model.add(embedding)
+
     model.add(Flatten())
     model.add(Dense(1, activation="sigmoid"))
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["acc"])
-    model.fit(data, labels, epochs=100, verbose=1)
+    model.fit(data, labels, epochs=20, verbose=1)
 
     loss, accuracy = model.evaluate(test_data, test_labels, verbose=0)
     print(accuracy)
@@ -105,4 +163,4 @@ def run():
 
 if __name__ == "__main__":
     run()
-    list_vectors(EMBEDDING_PATH)
+    # list_vectors(EMBEDDING_PATH)
