@@ -143,28 +143,31 @@ def run():
     embedding_dimension = 100
     """
     pretrained external embeddings
-    I think this data set does not have enough data to train the embeddings
+    a lesson we can take away from this small experiment is that task-specific embeddings, optimized for a 
+    certain task, may under specific circumstances be superior to pretrained word embeddings
     """
 
-    embedding_matrix = load_embedding_zipped("glove.6B.100d.txt", vocab, embedding_dimension)
-    # print(embedding_matrix)
-    embedding = Embedding(
-        len(vocab) + 1,
-        embedding_dimension,
-        weights=[embedding_matrix],
-        # embeddings_initializer=Constant(embedding_matrix),
-        input_length=max_len,
-        trainable=Fa,
-    )
+    load_embedding_zipped("glove.6B.100d.txt", vocab, embedding_dimension)
+
+    # embedding = Embedding(
+    #     len(vocab) + 1,
+    #     embedding_dimension,
+    #     weights=[embedding_matrix],
+    #     # embeddings_initializer=Constant(embedding_matrix),
+    #     input_length=max_len,
+    #     trainable=False,
+    # )
 
     """
     task-specific embeddings
     """
-    # embedding = Embedding(len(vocab), embedding_dimension, input_length=max_len)
+    embedding = Embedding(len(vocab), embedding_dimension, input_length=max_len)
     model.add(embedding)
 
     model.add(Flatten())
     model.add(Dense(1, activation="sigmoid"))
+
+    print(model.summary())
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["acc"])
     model.fit(data, labels, epochs=20, verbose=1)
 
