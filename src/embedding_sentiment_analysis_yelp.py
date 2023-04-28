@@ -148,11 +148,14 @@ def run():
 
     embedding_matrix = load_embedding_zipped("glove.6B.100d.txt", vocab, embedding_dimension)
     # print(embedding_matrix)
-    embedding = Embedding(len(vocab) + 1,
-                          embedding_dimension,
-                          weights=[embedding_matrix],
-                          input_length=max_len,
-                          trainable=False)
+    embedding = Embedding(
+        len(vocab) + 1,
+        embedding_dimension,
+        weights=[embedding_matrix],
+        # embeddings_initializer=Constant(embedding_matrix),
+        input_length=max_len,
+        trainable=Fa,
+    )
 
     """
     task-specific embeddings

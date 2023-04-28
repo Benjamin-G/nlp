@@ -40,8 +40,14 @@ def list_vectors(embedding_path):
     w2v = KeyedVectors.load_word2vec_format(
         os.path.join(embedding_path), binary=False, unicode_errors="ignore")
 
+    res = ""
     for w in sorted(w2v.key_to_index):
-        print(w, w2v.most_similar(w, topn=3))
+        res += f"{w}: {w2v.most_similar(w, topn=3)}\n"
+        # print(w, w2v.most_similar(w, topn=3))
+
+    with open("../data/test/list_vectors.txt", "w") as text_file:
+        print("---- saving list_vectors.txt")
+        text_file.write(res)
 
 
 def tsne_plot(model, max_words=100):
