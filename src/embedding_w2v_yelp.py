@@ -9,7 +9,7 @@ from keras.layers import Dense, Embedding, Reshape, dot
 from keras.preprocessing.sequence import skipgrams
 from sklearn.model_selection import train_test_split
 
-from src.utils import create_vocabulary, list_vectors
+from src.utils import create_vocabulary, list_vectors, save_embeddings
 
 
 def save_embedding(outputFile, weights, vocabulary):
@@ -128,10 +128,10 @@ def run():
     model.fit(
         generator(word_target, word_context, labels, 100),
         steps_per_epoch=100,
-        epochs=1000,
+        epochs=100,
     )
 
-    save_embedding(EMBEDDING_PATH, embedding.get_weights()[0], vocab)
+    save_embeddings(EMBEDDING_PATH, embedding.get_weights()[0], vocab)
 
 
 if __name__ == "__main__":

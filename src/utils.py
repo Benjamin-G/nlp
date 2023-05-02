@@ -1,3 +1,4 @@
+import codecs
 import os
 import re
 
@@ -100,3 +101,15 @@ def create_vocabulary(vocabulary, sentences):
                 vocabulary[word] = len(vocabulary)
 
     return vocabulary
+
+
+def save_embeddings(outputFile, weights, vocabulary):
+    rev = {v: k for k, v in vocabulary.items()}
+    with codecs.open(outputFile, "w") as f:
+        f.write(str(len(vocabulary)) + " " + str(weights.shape[1]) + "\n")
+        for index in sorted(rev.keys()):
+            word = rev[index]
+            f.write(str(word) + " ")
+            for i in range(len(weights[index])):
+                f.write(str(weights[index][i]) + " ")
+            f.write("\n")
