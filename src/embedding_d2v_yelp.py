@@ -8,7 +8,7 @@ from keras.layers import Dense, Embedding, Flatten, Reshape, concatenate
 from nltk import ngrams
 from sklearn.model_selection import train_test_split
 
-from src.utils import create_vocabulary, save_embeddings
+from src.utils import create_vocabulary
 
 
 def process_data(df, window_size):
@@ -173,11 +173,11 @@ def run():
         epochs=20,
     )
 
-    save_embeddings(
-        EMBEDDING_PATH,
-        embedding_doc.get_weights()[0],
-        vocab,
-    )
+    # save_embeddings(
+    #     EMBEDDING_PATH,
+    #     embedding_doc.get_weights()[0],
+    #     docids.tolist(),
+    # )
 
 
 if __name__ == "__main__":
