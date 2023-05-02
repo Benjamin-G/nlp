@@ -173,6 +173,9 @@ def run():
         epochs=20,
     )
 
+    # In particular, bidirectional LSTMS (biLSTMs) have been used to pack contextual word information (looking
+    # backward and forward in sequences of words) into vector representations of separate words (see Peters 2018).
+
     # save_embeddings(
     #     EMBEDDING_PATH,
     #     embedding_doc.get_weights()[0],
