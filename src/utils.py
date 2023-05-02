@@ -1,4 +1,5 @@
 import os
+import re
 
 import numpy as np
 from gensim.models import KeyedVectors
@@ -88,3 +89,14 @@ def tsne_plot(model, max_words=100):
                      ha="right",
                      va="bottom")
     plt.show()
+
+
+def create_vocabulary(vocabulary, sentences):
+    vocabulary["<unk>"] = 0
+    for sentence in sentences:
+        for word in sentence.strip().split():
+            word = re.sub("[.,:;'\"!?()]+", "", word.lower())
+            if word not in vocabulary:
+                vocabulary[word] = len(vocabulary)
+
+    return vocabulary

@@ -9,7 +9,7 @@ from keras.layers import Dense, Embedding, Reshape, dot
 from keras.preprocessing.sequence import skipgrams
 from sklearn.model_selection import train_test_split
 
-from src.utils import list_vectors
+from src.utils import create_vocabulary, list_vectors
 
 
 def save_embedding(outputFile, weights, vocabulary):
@@ -22,17 +22,6 @@ def save_embedding(outputFile, weights, vocabulary):
             for i in range(len(weights[index])):
                 f.write(str(weights[index][i]) + " ")
             f.write("\n")
-
-
-def create_vocabulary(vocabulary, sentences):
-    vocabulary["<unk>"] = 0
-    for sentence in sentences:
-        for word in sentence.strip().split():
-            word = re.sub("[.,:;'\"!?()]+", "", word.lower())
-            if word not in vocabulary:
-                vocabulary[word] = len(vocabulary)
-
-    return vocabulary
 
 
 def process_data(df, window_size):
