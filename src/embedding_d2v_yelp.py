@@ -8,19 +8,7 @@ from keras.layers import Dense, Embedding, Flatten, Reshape, concatenate
 from nltk import ngrams
 from sklearn.model_selection import train_test_split
 
-from src.utils import create_vocabulary
-
-
-# def save_embedding(outputFile, weights, vocabulary):
-#     rev = {v: k for k, v in vocabulary.items()}
-#     with codecs.open(outputFile, "w") as f:
-#         f.write(str(len(vocabulary)) + " " + str(weights.shape[1]) + "\n")
-#         for index in sorted(rev.keys()):
-#             word = rev[index]
-#             f.write(str(word) + " ")
-#             for i in range(len(weights[index])):
-#                 f.write(str(weights[index][i]) + " ")
-#             f.write("\n")
+from src.utils import create_vocabulary, save_embeddings
 
 
 def process_data(df, window_size):
@@ -96,7 +84,10 @@ def generator(target, context, batch_size):
             w1[i] = context[index][1]
             w2[i] = context[index][2]
             w3[i] = context[index][3]
-        yield [w1, w2, w3, docid], [batch_targets]
+        yield [w1, w2, w3, docid], np.array(batch_targets)
+
+
+EMBEDDING_PATH = "../data/test/d2v_embedding.txt"
 
 
 def run():
@@ -175,6 +166,18 @@ def run():
     )
 
     print(model.summary())
+
+    model.fit(
+        generator(targets, contexts, 100),
+        steps_per_epoch=100,
+        epochs=20,
+    )
+
+    save_embeddings(
+        EMBEDDING_PATH,
+        embedding_doc.get_weights()[0],
+        vocab,
+    )
 
 
 if __name__ == "__main__":
