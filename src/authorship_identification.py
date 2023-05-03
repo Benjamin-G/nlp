@@ -9,6 +9,15 @@ from nltk import ngrams
 
 
 def create_label_dict(path_training, path_test):
+    """
+    Creating a table dictionary
+    :param path_training: 
+    :type path_training: 
+    :param path_test: 
+    :type path_test: 
+    :return: 
+    :rtype: 
+    """
     filesTraining = [join(path_training, filename) for filename in listdir(path_training) if
                      isfile(join(path_training, filename))]
 
@@ -36,6 +45,15 @@ def create_label_dict(path_training, path_test):
 
 
 def merge_dictionaries(d1, d2):
+    """
+    Merging dictionaries
+    :param d1: 
+    :type d1: 
+    :param d2: 
+    :type d2: 
+    :return: 
+    :rtype: 
+    """
     d = d1.copy()
     d.update(d2)
     return d
@@ -43,6 +61,7 @@ def merge_dictionaries(d1, d2):
 
 def segment_document_words(filename, nb_words_per_segment):
     """
+    Segmenting documents based on words
     segment size of nb_words_per_segment words produces a list of word-based segments
     :param filename: 
     :type filename: 
@@ -68,6 +87,7 @@ def segment_document_words(filename, nb_words_per_segment):
 
 def vectorize_documents_BOW(path, label_dict, nb_words_per_segment):
     """
+    Vectorizing documents using bag-of-words
     This procedure generates word-based vectors for segmented documents.
     :param path: 
     :type path: 
@@ -128,6 +148,7 @@ def vectorize_documents_BOW(path, label_dict, nb_words_per_segment):
 
 def segment_document_ngrams(filename, nb_words_per_segment, ngram_size):
     """
+    Segmenting documents using word n-grams
     chop up sentences into word n-grams of a specified size
     :param filename:
     :type filename:
@@ -154,7 +175,12 @@ def segment_document_ngrams(filename, nb_words_per_segment, ngram_size):
 
 def vectorize_documents_ngrams(path, ngram_size, label_dict, nb_words_per_segment):
     """
-    The vectorization procedure for word n-grams is then exactly the same as for separate words 
+    Vectorizing documents using character n-grams
+    
+    The vectorization procedure for word n-grams is then exactly the same as for separate words
+    
+    If we preprocess our data explicitly by generating word n-grams ourselves, a CNN can detect higher-order n-grams 
+    from these n-grams: n-grams of n-grams. 
     :param path: 
     :type path: 
     :param ngram_size: 
@@ -211,6 +237,94 @@ def vectorize_documents_ngrams(path, ngram_size, label_dict, nb_words_per_segmen
     y = np_utils.to_categorical(labels, nb_classes)
 
     return np.array(X), y, int(vocab_len * 1.5) + 1
+
+
+def segment_document_char_ngrams(filename, nb_words_per_segment, ngram_size):
+    """
+    Segmenting documents based on character n-grams
+    
+    a lot of research on authorship analysis (like Stamatatos 2009) has found that subword information
+    like character n-grams also bears authorship-revealing information.
+    :param filename:
+    :type filename:
+    :param nb_words_per_segment:
+    :type nb_words_per_segment:
+    :param ngram_size:
+    :type ngram_size:
+    :return:
+    :rtype:
+    """
+    wordsDict = {}
+    words = []
+    with open(filename) as f:
+        for line in f:
+            line = line.rstrip("-\n").rstrip().replace(" ", "#")
+            char_ngrams_list = ngrams(list(line), ngram_size)
+            for char_ngram in char_ngrams_list:
+                joined = "".join(char_ngram)
+                words.append(joined)
+                wordsDict[joined] = 1
+
+    segments = [words[i:i + nb_words_per_segment] for i in range(0, len(words), nb_words_per_segment)]
+
+    return segments, wordsDict
+
+
+def vectorize_documents_char_ngrams(path, ngram_size, label_dict, nb_words_per_segment):
+    """
+    Vectorizing documents based on character n-grams
+    :param path: 
+    :type path: 
+    :param ngram_size: 
+    :type ngram_size: 
+    :param label_dict: 
+    :type label_dict: 
+    :param nb_words_per_segment: 
+    :type nb_words_per_segment: 
+    :return: 
+    :rtype: 
+    """
+    files = [filename for filename in listdir(path) if isfile(
+        join(path, filename))]
+    segments = []
+    labels = []
+    globalDict = {}
+
+    for file in files:
+        match = re.match("^.*12[A-Z][a-z]+([A-Z]+).+", file)
+        if match:
+            label = ord(match.group(1)) - 65
+        else:
+            print("Skipping filename:%s" % file)
+            continue
+
+        segmented_document, wordDict = segment_document_char_ngrams(join(path, file), nb_words_per_segment, ngram_size)
+
+        globalDict = merge_dictionaries(globalDict, wordDict)
+
+        segments.extend(segmented_document)
+        for _segment in segmented_document:
+            labels.append(label)
+
+    vocab_len = len(globalDict)
+
+    labels = [label_dict[x] for x in labels]
+    nb_classes = len(label_dict)
+
+    X = []
+    y = []
+
+    for segment in segments:
+        segment = " ".join(segment)
+        X.append(
+            pad_sequences(
+                [hashing_trick(segment, round(vocab_len * 1.5))],
+                nb_words_per_segment,
+            )[0])
+
+    y = np_utils.to_categorical(labels, nb_classes)
+
+    return np.array(X), y, (vocab_len * 1.5) + 1
 
 
 def run():
