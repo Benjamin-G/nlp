@@ -343,7 +343,7 @@ def vectorize_documents_char_ngrams(path, ngram_size, label_dict, nb_words_per_s
 
     y = np_utils.to_categorical(labels, nb_classes)
 
-    return np.array(X), y, (vocab_len * 1.5) + 1
+    return np.array(X), y, int(vocab_len * 1.5) + 1
 
 
 def run():
@@ -361,16 +361,26 @@ def run():
 
     input_dim = 500
 
-    X, y, vocab_len = vectorize_documents_BOW(train, labelDict, input_dim)
+    # Running this MLP on the single-word-based representation of the PAN data results in around 65% accuracy
+    # X, y, vocab_len = vectorize_documents_BOW(train, labelDict, input_dim)
+
+    # Performance drops significantly, to scores in the realm of 55% (54.17% in our run)
+    # ngram_size above 2 starts having memory issues
+    # Total params: 3,879,014 with 2... Total params: 1,261,872,864 with 10 !!!!
+    X, y, vocab_len = vectorize_documents_char_ngrams(train, 2, labelDict, input_dim)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
+    # nb_classes dimensionality (the number of authors in our dataset).
     nb_classes = len(labelDict)
 
     model = Sequential()
+    # Embedding to represent the word indices of our 500-word blocks as 300-dimensional vectors.
     model.add(Embedding(vocab_len, 300, input_length=input_dim))
     model.add(Dense(300, activation="relu"))
+    # Dropout layers randomly deactivate neurons in their input in order to avoid overfitting.
     model.add(Dropout(0.3))
+
     model.add(Flatten())
     model.add(Dense(nb_classes, activation="sigmoid"))
 
