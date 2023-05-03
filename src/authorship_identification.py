@@ -4,7 +4,7 @@ from os.path import isfile, join
 
 import numpy as np
 from keras import Sequential
-from keras.layers import Dense, Dropout, Embedding, Flatten
+from keras.layers import Convolution1D, Dense, Embedding, Flatten
 from keras.utils import np_utils, pad_sequences
 from keras_preprocessing.text import hashing_trick
 from nltk import ngrams
@@ -361,13 +361,18 @@ def run():
 
     input_dim = 500
 
+    # The takeaway from these small experiments is, first,
+    # that lexical information alone is not sufficient for establishing textual similarity
+
     # Running this MLP on the single-word-based representation of the PAN data results in around 65% accuracy
-    # X, y, vocab_len = vectorize_documents_BOW(train, labelDict, input_dim)
+    X, y, vocab_len = vectorize_documents_BOW(train, labelDict, input_dim)
+
+    # X, y, vocab_len = vectorize_documents_ngrams(train, 2, labelDict, input_dim)
 
     # Performance drops significantly, to scores in the realm of 55% (54.17% in our run)
     # ngram_size above 2 starts having memory issues
     # Total params: 3,879,014 with 2... Total params: 1,261,872,864 with 10 !!!!
-    X, y, vocab_len = vectorize_documents_char_ngrams(train, 2, labelDict, input_dim)
+    # X, y, vocab_len = vectorize_documents_char_ngrams(train, 2, labelDict, input_dim)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
@@ -379,7 +384,11 @@ def run():
     model.add(Embedding(vocab_len, 300, input_length=input_dim))
     model.add(Dense(300, activation="relu"))
     # Dropout layers randomly deactivate neurons in their input in order to avoid overfitting.
-    model.add(Dropout(0.3))
+    # comment out for Convolution1D
+    # model.add(Dropout(0.3))
+
+    model.add(Convolution1D(32, 30, padding="same"))
+    # CNNs are the natural tools for emphasizing sequential information, which also carries lexical information
 
     model.add(Flatten())
     model.add(Dense(nb_classes, activation="sigmoid"))
