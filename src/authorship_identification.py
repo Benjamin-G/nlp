@@ -3,9 +3,29 @@ from os import listdir
 from os.path import isfile, join
 
 import numpy as np
+from keras import Sequential
+from keras.layers import Dense, Dropout, Embedding, Flatten
 from keras.utils import np_utils, pad_sequences
 from keras_preprocessing.text import hashing_trick
 from nltk import ngrams
+from sklearn.model_selection import train_test_split
+
+
+def create_label_dict_one_file(path):
+    files = [join(path, filename) for filename in listdir(path) if isfile(join(path, filename))]
+    labelDict = {}
+
+    for file in files:
+        match = re.match("^.*\\/?12[A-Z][a-z]+([A-Z]+).+", file)
+        if match:
+            label = ord(match.group(1)) - 65
+        else:
+            print("Skipping filename:%s" % (file))
+            continue
+        if label not in labelDict:
+            labelDict[label] = len(labelDict)
+
+    return labelDict
 
 
 def create_label_dict(path_training, path_test):
@@ -72,7 +92,7 @@ def segment_document_words(filename, nb_words_per_segment):
     """
     wordsDict = {}
     words = []
-    with open(filename) as f:
+    with open(filename, encoding="cp437") as f:
         for line in f:
             tokens = line.rstrip("-\n").rstrip().split(" ")
             for token in tokens:
@@ -80,9 +100,9 @@ def segment_document_words(filename, nb_words_per_segment):
                     words.append(token)
                     wordsDict[token] = 1
 
-    f.close()
     segments = [words[i: i + nb_words_per_segment] for i in range(0, len(words), nb_words_per_segment)]
-    return segments, len(wordsDict)
+
+    return segments, wordsDict
 
 
 def vectorize_documents_BOW(path, label_dict, nb_words_per_segment):
@@ -161,15 +181,16 @@ def segment_document_ngrams(filename, nb_words_per_segment, ngram_size):
     """
     wordsDict = {}
     words = []
-    with open(filename) as f:
+    with open(filename, encoding="cp437") as f:
         for line in f:
-            ngram_list = ngrams(line.rstrip(), ngram_size)
+            ngram_list = ngrams(line.rstrip("-\n").rstrip(), ngram_size)
             for ngram in ngram_list:
                 joined = "_".join(ngram)
                 words.append(joined)
                 wordsDict[joined] = 1
-    f.close()
+
     segments = [words[i:i + nb_words_per_segment] for i in range(0, len(words), nb_words_per_segment)]
+
     return segments, wordsDict
 
 
@@ -256,7 +277,7 @@ def segment_document_char_ngrams(filename, nb_words_per_segment, ngram_size):
     """
     wordsDict = {}
     words = []
-    with open(filename) as f:
+    with open(filename, encoding="cp437") as f:
         for line in f:
             line = line.rstrip("-\n").rstrip().replace(" ", "#")
             char_ngrams_list = ngrams(list(line), ngram_size)
@@ -284,8 +305,7 @@ def vectorize_documents_char_ngrams(path, ngram_size, label_dict, nb_words_per_s
     :return: 
     :rtype: 
     """
-    files = [filename for filename in listdir(path) if isfile(
-        join(path, filename))]
+    files = [filename for filename in listdir(path) if isfile(join(path, filename))]
     segments = []
     labels = []
     globalDict = {}
@@ -312,7 +332,6 @@ def vectorize_documents_char_ngrams(path, ngram_size, label_dict, nb_words_per_s
     nb_classes = len(label_dict)
 
     X = []
-    y = []
 
     for segment in segments:
         segment = " ".join(segment)
@@ -328,10 +347,56 @@ def vectorize_documents_char_ngrams(path, ngram_size, label_dict, nb_words_per_s
 
 
 def run():
-    training_dir = "../data/pan12-training"
-    testing_dir = "../data/pan12-testing"
+    """
+    The two models are evaluated for our 
+    three types of data representation—word 
+    unigrams, word n-grams, and character n-grams—on the PAN data.
+    :return: 
+    :rtype: 
+    """
+    train = "../data/pan12-training"
+    # test = "../data/pan12-testing"
 
-    print(training_dir, testing_dir)
+    labelDict = create_label_dict_one_file(train)
+
+    input_dim = 500
+
+    X, y, vocab_len = vectorize_documents_BOW(train, labelDict, input_dim)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+    nb_classes = len(labelDict)
+
+    model = Sequential()
+    model.add(Embedding(vocab_len, 300, input_length=input_dim))
+    model.add(Dense(300, activation="relu"))
+    model.add(Dropout(0.3))
+    model.add(Flatten())
+    model.add(Dense(nb_classes, activation="sigmoid"))
+
+    model.compile(
+        loss="categorical_crossentropy",
+        optimizer="adam",
+        metrics=["acc"],
+    )
+
+    print(model.summary())
+
+    nb_epochs = 10
+
+    model.fit(
+        X_train,
+        y_train,
+        epochs=nb_epochs,
+        shuffle=True,
+        batch_size=64,
+        validation_split=0.3,
+        verbose=2,
+    )
+
+    loss, accuracy = model.evaluate(X_test, y_test, verbose=0)
+
+    print("Accuracy: %f" % (accuracy * 100))
 
 
 if __name__ == "__main__":
