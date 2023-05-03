@@ -346,7 +346,7 @@ def vectorize_documents_char_ngrams(path, ngram_size, label_dict, nb_words_per_s
     return np.array(X), y, int(vocab_len * 1.5) + 1
 
 
-def run():
+def run_authorship_attribution():
     """
     The two models are evaluated for our 
     three types of data representation—word 
@@ -419,4 +419,4 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    run_authorship_attribution()
