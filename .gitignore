@@ -137,3 +137,4 @@ dmypy.json
 /data/yelp_polarity.parquet.gzip
 /data/pan12-testing/
 /data/pan12-training/
+/data/tasks_1-20_v1-2/
