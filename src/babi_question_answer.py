@@ -53,10 +53,6 @@ def create_tokenizer(training_data, test_data):
     vocabulary = set([word for word in text])
     max_words = len(vocabulary)
 
-    print('Vocab size:', max_words, 'unique words')
-    print('Story max length:', max_story_len, 'words')
-    print('Query max length:', max_query_len, 'words')
-
     tokenizer = Tokenizer(num_words=max_words, char_level=False, split=' ')
     tokenizer.fit_on_texts(text)
 
@@ -111,14 +107,92 @@ def process_stories(filename, tokenizer, max_story_len, max_query_len, vocab_siz
     return np.array(X), np.array(Q), np.array(y)
 
 
+def process_stories_n_context(filename, tokenizer, vocab_size, use_context=0):
+    with open(filename) as f:
+        X = []
+        Q = []
+        y = []
+        max_story_len = 0
+        max_query_len = 0
+
+        for line in f:
+            m = re.match("^(\d+)\s(.+)\.", line.rstrip())
+            if m:
+                if int(m.group(1)) == 1:
+                    story = {}
+                story[int(m.group(1))] = m.group(2)
+            else:
+                m = re.match("^\d+\s(.+)\?\s\t([^\t]+)\t(.+)",
+                             line.rstrip())
+                if m:
+                    question = m.group(1)
+                    answer = m.group(2)
+                    answer_ids = [int(x) for x in m.group(3).split(" ")]
+                    facts = ' '.join([story[id] for id in answer_ids])
+                    all_facts = ' '.join([story[id] for id in story])
+                    facts_v = vectorize(facts, tokenizer)
+                    all_facts_v = vectorize(all_facts, tokenizer)
+
+                    if use_context == 0:
+                        vectorized_fact = facts_v
+                    elif use_context == -1:
+                        vectorized_fact = all_facts_v
+                    else:
+                        x = min(use_context, len(story))
+
+                        facts = ' '.join([story[id] for id in answer_ids]) + ' '
+                        n = 0
+                        for id in story:
+                            if n < x and id not in answer_ids:
+                                facts += story[id] + ' '
+                                n += 1
+                        vectorized_fact = vectorize(facts, tokenizer)
+                    l = len(vectorized_fact)
+                    if l > max_story_len:
+                        max_story_len = l
+                    vectorized_question = vectorize(question,
+                                                    tokenizer)
+                    l = len(vectorized_question)
+                    if l > max_query_len:
+                        max_query_len = l
+
+                    vectorized_answer = vectorize(answer,
+                                                  tokenizer)
+
+                    X.append(vectorized_fact)
+                    Q.append(vectorized_question)
+                    answer = np.zeros(vocab_size)
+                    answer[vectorized_answer[0]] = 1
+                    y.append(answer)
+
+    X = pad_sequences(X, maxlen=max_story_len)
+    Q = pad_sequences(Q, maxlen=max_query_len)
+
+    return np.array(X), np.array(Q), np.array(y), max_story_len, max_query_len
+
+
 def create_model(trainingData, testData, context=False):
     tokenizer, vocab_size, max_story_len, max_query_len = create_tokenizer(trainingData, testData)
 
-    X_tr, Q_tr, y_tr = process_stories(trainingData, tokenizer, max_story_len,
-                                       max_query_len, vocab_size, use_context=context)
+    # X_tr, Q_tr, y_tr = process_stories(trainingData, tokenizer, max_story_len,
+    # max_query_len, vocab_size, use_context=context)
 
-    X_te, Q_te, y_te = process_stories(testData, tokenizer, max_story_len,
-                                       max_query_len, vocab_size, use_context=context)
+    # X_te, Q_te, y_te = process_stories(testData, tokenizer, max_story_len,
+    #                                    max_query_len, vocab_size, use_context=context)
+
+    X_tr, Q_tr, y_tr, max_story_len_tr, max_query_len_tr = process_stories_n_context(trainingData, tokenizer,
+                                                                                     vocab_size,
+                                                                                     use_context=context)
+
+    X_te, Q_te, y_te, max_story_len_te, max_query_len_te = process_stories_n_context(testData, tokenizer,
+                                                                                     vocab_size, use_context=context)
+
+    max_story_len = max(max_story_len_tr, max_story_len_te)
+    max_query_len = max(max_query_len_tr, max_query_len_te)
+
+    print('Vocab size:', vocab_size, 'unique words')
+    print('Story max length:', max_story_len, 'words')
+    print('Query max length:', max_query_len, 'words')
 
     embedding = layers.Embedding(vocab_size, 100)
 
@@ -146,8 +220,8 @@ def create_model(trainingData, testData, context=False):
     return X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model
 
 
-def run_evaluate(trainingData, testData, context=False):
-    X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model = create_model(trainingData, testData, context)
+def run_evaluate(training_data, test_data, context=False):
+    X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model = create_model(training_data, test_data, context)
 
     print('Training')
     model.fit([X_tr, Q_tr], y_tr,
@@ -174,9 +248,9 @@ def run_rnn():
     :return:
     :rtype:
     """
-    create_tokenizer('../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_train.txt',
-                     '../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_test.txt')
-    print()
+    run_evaluate('../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_train.txt',
+                 '../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_test.txt',
+                 context=True)
 
 
 if __name__ == '__main__':
