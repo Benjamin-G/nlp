@@ -2,7 +2,7 @@ import re
 
 import numpy as np
 from keras import layers, Model
-from keras.layers import SimpleRNN
+from keras.layers import SimpleRNN, LSTM
 from keras_preprocessing.sequence import pad_sequences
 from keras_preprocessing.text import Tokenizer
 
@@ -171,7 +171,7 @@ def process_stories_n_context(filename, tokenizer, vocab_size, use_context=0):
     return np.array(X), np.array(Q), np.array(y), max_story_len, max_query_len
 
 
-def create_model(trainingData, testData, context=False):
+def create_model_rnn(trainingData, testData, context=False):
     tokenizer, vocab_size, max_story_len, max_query_len = create_tokenizer(trainingData, testData)
 
     # X_tr, Q_tr, y_tr = process_stories(trainingData, tokenizer, max_story_len,
@@ -220,7 +220,50 @@ def create_model(trainingData, testData, context=False):
     return X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model
 
 
-def run_evaluate(training_data, test_data, context=False):
+def create_model_lstm(training_data, test_data, context):
+    tokenizer, vocab_size, max_story_len, max_query_len = create_tokenizer(training_data, test_data)
+
+    X_tr, Q_tr, y_tr, max_story_len_tr, max_query_len_tr = process_stories_n_context(training_data, tokenizer,
+                                                                                     vocab_size,
+                                                                                     use_context=context)
+
+    X_te, Q_te, y_te, max_story_len_te, max_query_len_te = process_stories_n_context(test_data, tokenizer,
+                                                                                     vocab_size, use_context=context)
+
+    max_story_len = max(max_story_len_tr, max_story_len_te)
+    max_query_len = max(max_query_len_tr, max_query_len_te)
+
+    print('Vocab size:', vocab_size, 'unique words')
+    print('Story max length:', max_story_len, 'words')
+    print('Query max length:', max_query_len, 'words')
+
+    embedding = layers.Embedding(vocab_size, 100)
+
+    story = layers.Input(shape=(max_story_len,),
+                         dtype='int32')
+    encoded_story = embedding(story)
+    encoded_story = LSTM(30)(encoded_story)
+
+    question = layers.Input(shape=(max_query_len,),
+                            dtype='int32')
+    encoded_question = embedding(question)
+    encoded_question = LSTM(30)(encoded_question)
+
+    merged = layers.concatenate([encoded_story,
+                                 encoded_question])
+
+    preds = layers.Dense(vocab_size, activation='softmax')(merged)
+
+    model = Model([story, question], preds)
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    model.summary()
+
+    return X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model
+
+
+def run_evaluate(training_data, test_data, create_model, context=False):
     X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model = create_model(training_data, test_data, context)
 
     print('Training')
@@ -248,9 +291,17 @@ def run_rnn():
     :return:
     :rtype:
     """
+    print('RNN')
     run_evaluate('../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_train.txt',
                  '../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_test.txt',
-                 context=True)
+                 create_model_rnn,
+                 context=False)
+
+    print('\n\nLSTM')
+    run_evaluate('../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_train.txt',
+                 '../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_test.txt',
+                 create_model_lstm,
+                 context=False)
 
 
 if __name__ == '__main__':
