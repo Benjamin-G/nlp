@@ -1,8 +1,10 @@
 import re
 
 import numpy as np
-from keras import layers, Model
-from keras.layers import SimpleRNN, LSTM
+from keras import layers, Model, Input
+from keras.backend import int_shape
+from keras.layers import SimpleRNN, LSTM, Embedding, Activation, add, Permute, concatenate, Dense, Flatten, Multiply, \
+    dot
 from keras_preprocessing.sequence import pad_sequences
 from keras_preprocessing.text import Tokenizer
 
@@ -172,6 +174,23 @@ def process_stories_n_context(filename, tokenizer, vocab_size, use_context=0):
 
 
 def create_model_rnn(trainingData, testData, context=False):
+    """
+     We will implement a branching model with two RNNs. These two RNNs handle the facts (stories) and the question.
+    Their output is merged by concatenation and sent through a Dense layer that produces a scalar of the size of our
+    answer vocabulary, consisting of probabilities. The model is seeded with answer vectors with one bit on (
+    one-hot), so the highest probability in the output layer reflects the most probable bit, indicating a unique
+    answer word in our lexicon.
+
+    one for analyzing a story and one for analyzing a question
+    :param trainingData:
+    :type trainingData:
+    :param testData:
+    :type testData:
+    :param context:
+    :type context:
+    :return:
+    :rtype:
+    """
     tokenizer, vocab_size, max_story_len, max_query_len = create_tokenizer(trainingData, testData)
 
     # X_tr, Q_tr, y_tr = process_stories(trainingData, tokenizer, max_story_len,
@@ -258,7 +277,70 @@ def create_model_lstm(training_data, test_data, context):
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
-    model.summary()
+
+    print(model.summary())
+
+    return X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model
+
+
+def create_model_mem_nn(training_data, test_data, context):
+    tokenizer, vocab_size, max_story_len, max_query_len = create_tokenizer(training_data, test_data)
+
+    X_tr, Q_tr, y_tr, max_story_len_tr, max_query_len_tr = process_stories_n_context(training_data, tokenizer,
+                                                                                     vocab_size,
+                                                                                     use_context=context)
+
+    X_te, Q_te, y_te, max_story_len_te, max_query_len_te = process_stories_n_context(test_data, tokenizer,
+                                                                                     vocab_size, use_context=context)
+
+    max_story_len = max(max_story_len_tr, max_story_len_te)
+    max_query_len = max(max_query_len_tr, max_query_len_te)
+
+    print('Vocab size:', vocab_size, 'unique words')
+    print('Story max length:', max_story_len, 'words')
+    print('Query max length:', max_query_len, 'words')
+
+    input = Input((max_story_len,))
+    question = Input((max_query_len,))
+
+    A = Embedding(input_dim=vocab_size,
+                  output_dim=64)
+    C = Embedding(input_dim=vocab_size,
+                  output_dim=max_query_len)
+    B = Embedding(input_dim=vocab_size,
+                  output_dim=64,
+                  input_length=max_query_len)
+
+    input_A = A(input)
+    input_C = C(input)
+    question_B = B(question)
+
+    input_question_match = dot([input_A, question_B],
+                               axes=(2, 2))
+    Probs = Activation('softmax')(input_question_match)
+
+    O = add([Probs, input_C])
+    O = Permute((2, 1))(O)
+
+    final_match = concatenate([O, question_B])
+
+    size = int_shape(final_match)[2]
+    weights = Dense(size, activation='softmax')(final_match)
+
+    merged = Multiply()([final_match, weights])
+    answer = Flatten()(merged)
+
+    answer = Dense(vocab_size)(answer)
+    answer = Activation('softmax')(answer)
+
+    model = Model([input, question], answer)
+    model.compile(
+        optimizer='rmsprop',
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    print(model.summary())
 
     return X_tr, Q_tr, y_tr, X_te, Q_te, y_te, model
 
@@ -279,15 +361,8 @@ def run_evaluate(training_data, test_data, create_model, context=False):
     print('Test loss / test accuracy = {:.4f} / {:.4f}'.format(loss, acc))
 
 
-def run_rnn():
+def run():
     """
-    We will implement a branching model with two RNNs. These two RNNs handle the facts (stories) and the question.
-    Their output is merged by concatenation and sent through a Dense layer that produces a scalar of the size of our
-    answer vocabulary, consisting of probabilities. The model is seeded with answer vectors with one bit on (
-    one-hot), so the highest probability in the output layer reflects the most probable bit, indicating a unique
-    answer word in our lexicon.
-
-    one for analyzing a story and one for analyzing a question
     :return:
     :rtype:
     """
@@ -303,6 +378,12 @@ def run_rnn():
                  create_model_lstm,
                  context=False)
 
+    print('\n\n End-to-end memory network')
+    run_evaluate('../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_train.txt',
+                 '../data/tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_test.txt',
+                 create_model_mem_nn,
+                 context=False)
+
 
 if __name__ == '__main__':
-    run_rnn()
+    run()
