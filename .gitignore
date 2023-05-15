@@ -138,3 +138,6 @@ dmypy.json
 /data/pan12-testing/
 /data/pan12-training/
 /data/tasks_1-20_v1-2/
+/data/masc_500k_texts/
+/data/masc_word_sense_sentence_corpus/
+/data/masc_500k_texts.zip
