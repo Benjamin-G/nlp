@@ -1,4 +1,3 @@
-import configparser
 import os
 from contextlib import suppress
 
@@ -8,10 +7,6 @@ from neo4j import GraphDatabase
 class GraphDBBase:
     def __init__(self, database: str = "spacy"):
         self.database = database
-        
-        config = configparser.ConfigParser()
-        config_file = os.path.join(os.path.dirname(__file__), "..", "config.ini")
-        config.read(config_file)
 
         uri = "bolt://localhost:7687"
         user = os.getenv("NEO4J_USER")
