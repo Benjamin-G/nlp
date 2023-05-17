@@ -170,11 +170,17 @@ class GraphBasedNLP(GraphDBBase):
 
 if __name__ == "__main__":
     basic_nlp = GraphBasedNLP()
-    basic_nlp.tokenize_and_store("John likes green apples", 1, False)
-    basic_nlp.tokenize_and_store("Melissa picked up 3 tasty red apples", 2, False)
-    basic_nlp.tokenize_and_store("That tree produces small yellow apples", 3, False)
-    basic_nlp.tokenize_and_store("Small people eat the large apples", 4, False)
-    basic_nlp.tokenize_and_store("Jackson likes to pick small apples", 5, False)
+    store_tag = True
+    sentences = [
+        "John likes green apples",
+        "Melissa picked up 3 tasty red apples",
+        "That tree produces small yellow apples",
+        "Small people eat the large apples",
+        "Jackson likes to pick small apples",
+    ]
+    for idx, x in enumerate(sentences):
+        basic_nlp.tokenize_and_store(x, idx, store_tag)
+
     # basic_nlp.tokenize_and_store( 
     # "Marie Curie received the Nobel Prize in Physic in 1903. She became the first woman to win the prize.", 1, True)
     basic_nlp.close()
