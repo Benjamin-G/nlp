@@ -19,6 +19,18 @@ class GraphBasedNLP(GraphDBBase):
             self.execute_without_exception("CREATE CONSTRAINT ON (l:AnnotatedText) ASSERT (l.id) IS NODE KEY")
 
     def tokenize_and_store(self, text, text_id, store_tag):
+        """
+        the resulting graph contains sentences, tokens—lemmatized, marked as stop words, and
+        with PoS information—and relationships between tokens that describe their role in the sentence.
+        :param text:
+        :type text:
+        :param text_id:
+        :type text_id:
+        :param store_tag:
+        :type store_tag:
+        :return:
+        :rtype:
+        """
         docs = self.nlp.pipe([text], disable=["ner"])
         for doc in docs:
             annotated_text = self.create_annotated_text(doc, text_id)
@@ -54,6 +66,7 @@ class GraphBasedNLP(GraphDBBase):
         }
 
         results = self.execute_query(sentence_query, params)
+        node_sentence_id = results[0]
 
         tag_occurrence_query = """
         MATCH (sentence:Sentence) WHERE id(sentence) = $sentence_id
@@ -87,26 +100,48 @@ class GraphBasedNLP(GraphDBBase):
         RETURN id(sentence) as result
         """
 
-        node_sentence_id = results[0]
         tag_occurrences = []
+        tag_occurrence_dependencies = []
+
+        """the root (the main verb) of the dependency tree is recognizable via the self loop the new relations 
+        connect TagOccurrence nodes to the dependent nodes. This connection is necessary because the same Tag can 
+        have different relationships in different sentences (John might be the subject in some sentences and the 
+        object in others), whereas a TagOccurrence represents the tag in a specific sentence context and can have 
+        only a specific role."""
 
         for token in sentence:
             lexeme = self.nlp.vocab[token.text]
             if not lexeme.is_punct and not lexeme.is_space:
-                tag_occurrence = {"id": str(text_id) + "_" + str(sentence_id) + "_" + str(token.idx),
+                tag_occurrence_id = str(text_id) + "_" + str(sentence_id) + "_" + str(token.idx)
+                tag_occurrence = {"id": tag_occurrence_id,
                                   "index": token.idx,
                                   "text": token.text,
                                   "lemma": token.lemma_,
                                   "pos": token.tag_,
                                   "is_stop": (lexeme.is_stop or lexeme.is_punct or lexeme.is_space)}
                 tag_occurrences.append(tag_occurrence)
+                tag_occurrence_dependency_source = str(text_id) + "_" + str(sentence_id) + "_" + str(token.head.idx)
+                dependency = {"source": tag_occurrence_dependency_source, "destination": tag_occurrence_id,
+                              "type": token.dep_}
+                tag_occurrence_dependencies.append(dependency)
+
         params = {"sentence_id": node_sentence_id, "tag_occurrences": tag_occurrences}
         if store_tag:
             results = self.execute_query(tag_occurrence_with_tag_query, params)
         else:
             results = self.execute_query(tag_occurrence_query, params)
 
+        self.process_dependencies(tag_occurrence_dependencies)
         return results[0]
+
+    def process_dependencies(self, tag_occurrence_dependencies):
+        tag_occurrence_query = """
+        UNWIND $dependencies as dependency
+        MATCH (source:TagOccurrence {id: dependency.source})
+        MATCH (destination:TagOccurrence {id: dependency.destination})
+        MERGE (source)-[:IS_DEPENDENT {type: dependency.type}]->(destination)
+        """
+        self.execute_query(tag_occurrence_query, {"dependencies": tag_occurrence_dependencies})
 
     def execute_query(self, query, params):
         results = []
@@ -121,6 +156,9 @@ class GraphBasedNLP(GraphDBBase):
 
 if __name__ == "__main__":
     basic_nlp = GraphBasedNLP()
-    basic_nlp.tokenize_and_store(
-        "Marie Curie received the Nobel Prize in Physic in 1903. She became the first woman to win the prize.", 1, True)
+    basic_nlp.tokenize_and_store("John likes green apples", 1, False)
+    basic_nlp.tokenize_and_store("Melissa picked up 3 tasty red apples", 2, False)
+    basic_nlp.tokenize_and_store("That tree produces small yellow apples", 3, False)
+    # basic_nlp.tokenize_and_store( 
+    # "Marie Curie received the Nobel Prize in Physic in 1903. She became the first woman to win the prize.", 1, True)
     basic_nlp.close()
