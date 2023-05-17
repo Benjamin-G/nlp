@@ -22,6 +22,20 @@ class GraphBasedNLP(GraphDBBase):
         """
         the resulting graph contains sentences, tokens—lemmatized, marked as stop words, and
         with PoS information—and relationships between tokens that describe their role in the sentence.
+        
+        * Next-word suggestion—As in section 11.1 with the next schema model, it is possible to suggest the next word 
+        considering the current one or any number of previous words.
+        
+        * Advanced search engines—When we have the 
+        information about the order of the words together with dependencies among them, we can implement advanced 
+        search capabilities in which, apart from checking for the exact order of the words, it is possible to 
+        consider cases with some words between our target and provide some suggestion. A concrete example follows 
+        this list. 
+        
+        * Content-based recommendation—By decomposing the text into components, we can compare item 
+        descriptions (movies, products, and so on). This step is one of the first required for providing 
+        content-based recommendations. In this case, having the lemmatization and other normalization in place (
+        stop-word removal, punctuation handling, and so on) will make the comparisons even more accurate. 
         :param text:
         :type text:
         :param text_id:
