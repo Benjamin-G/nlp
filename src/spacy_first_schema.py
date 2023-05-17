@@ -18,15 +18,16 @@ class GraphBasedNLP(GraphDBBase):
             self.execute_without_exception("CREATE CONSTRAINT ON (t:Sentence) ASSERT (t.id) IS NODE KEY")
             self.execute_without_exception("CREATE CONSTRAINT ON (l:AnnotatedText) ASSERT (l.id) IS NODE KEY")
 
-    def tokenize_and_store(self, text, text_id, storeTag):
+    def tokenize_and_store(self, text, text_id, store_tag):
         docs = self.nlp.pipe([text], disable=["ner"])
         for doc in docs:
             annotated_text = self.create_annotated_text(doc, text_id)
             i = 1
             for sentence in doc.sents:
                 print("-------- Sentence ", i, "-----------")
+                print(annotated_text)
                 print(sentence.text)
-                self.store_sentence(sentence, annotated_text, text_id, i, storeTag)
+                self.store_sentence(sentence, annotated_text, text_id, i, store_tag)
                 i += 1
 
     def create_annotated_text(self, doc, id):
@@ -110,8 +111,8 @@ class GraphBasedNLP(GraphDBBase):
     def execute_query(self, query, params):
         results = []
         with self.get_session() as session:
-            print("Executing query:\n", query)
-            print("with params: ", params)
+            # print("Executing query:\n", query)
+            # print("with params: ", params)
             for items in session.run(query, params):
                 item = items["result"]
                 results.append(item)
