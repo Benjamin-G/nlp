@@ -36,13 +36,13 @@ class GraphBasedNLP(GraphDBBase):
         descriptions (movies, products, and so on). This step is one of the first required for providing 
         content-based recommendations. In this case, having the lemmatization and other normalization in place (
         stop-word removal, punctuation handling, and so on) will make the comparisons even more accurate. 
-        :param text:
-        :type text:
-        :param text_id:
-        :type text_id:
-        :param store_tag:
-        :type store_tag:
-        :return:
+        :param text: 
+        :type text: 
+        :param text_id: 
+        :type text_id: 
+        :param store_tag: 
+        :type store_tag: 
+        :return: 
         :rtype:
         """
         docs = self.nlp.pipe([text], disable=["ner"])
@@ -173,6 +173,8 @@ if __name__ == "__main__":
     basic_nlp.tokenize_and_store("John likes green apples", 1, False)
     basic_nlp.tokenize_and_store("Melissa picked up 3 tasty red apples", 2, False)
     basic_nlp.tokenize_and_store("That tree produces small yellow apples", 3, False)
+    basic_nlp.tokenize_and_store("Small people eat the large apples", 4, False)
+    basic_nlp.tokenize_and_store("Jackson likes to pick small apples", 5, False)
     # basic_nlp.tokenize_and_store( 
     # "Marie Curie received the Nobel Prize in Physic in 1903. She became the first woman to win the prize.", 1, True)
     basic_nlp.close()
