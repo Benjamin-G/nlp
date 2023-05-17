@@ -38,46 +38,57 @@ class GraphBasedNLP(GraphDBBase):
         return results[0]
 
     def store_sentence(self, sentence, annotated_text, text_id, sentence_id, store_tag):
-        sentence_query = """MATCH (ann:AnnotatedText) WHERE id(ann) = $ann_id
+        sentence_query = """
+        MATCH (ann:AnnotatedText) WHERE id(ann) = $ann_id
             MERGE (sentence:Sentence {id: $sentence_unique_id})
-            SET sentence.text = $text
+        SET sentence.text = $text
             MERGE (ann)-[:CONTAINS_SENTENCE]->(sentence)
-            RETURN id(sentence) as result
+        RETURN id(sentence) as result
         """
 
-        tag_occurrence_query = """MATCH (sentence:Sentence) WHERE id(sentence) = $sentence_id
-            WITH sentence, $tag_occurrences as tags
-            FOREACH ( idx IN range(0,size(tags)-2) |
-            MERGE (tagOccurrence1:TagOccurrence {id: tags[idx].id})
-            SET tagOccurrence1 = tags[idx]
-            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence1)
-            MERGE (tagOccurrence2:TagOccurrence {id: tags[idx + 1].id})
-            SET tagOccurrence2 = tags[idx + 1]
-            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence2)
-            MERGE (tagOccurrence1)-[r:HAS_NEXT {sentence: sentence.id}]->(tagOccurrence2))
-            RETURN id(sentence) as result
-        """
+        params = {
+            "ann_id": annotated_text,
+            "text": sentence.text,
+            "sentence_unique_id": str(text_id) + "_" + str(sentence_id),
+        }
 
-        tag_occurrence_with_tag_query = """MATCH (sentence:Sentence) WHERE id(sentence) = $sentence_id
-            WITH sentence, $tag_occurrences as tags
-            FOREACH ( idx IN range(0,size(tags)-2) |
-            MERGE (tagOccurrence1:TagOccurrence {id: tags[idx].id})
-            SET tagOccurrence1 = tags[idx]
-            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence1)
-            MERGE (tagOccurrence2:TagOccurrence {id: tags[idx + 1].id})
-            SET tagOccurrence2 = tags[idx + 1]
-            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence2)
-            MERGE (tagOccurrence1)-[r:HAS_NEXT {sentence: sentence.id}]->(tagOccurrence2))
-            FOREACH (tagItem in [tag_occurrence IN $tag_occurrences WHERE tag_occurrence.is_stop = False] | 
-            MERGE (tag:Tag {id: tagItem.lemma}) MERGE (tagOccurrence:TagOccurrence {id: tagItem.id}) MERGE (tag)<-[:REFERS_TO]-(tagOccurrence))
-            RETURN id(sentence) as result
-        """
-
-        params = {"ann_id": annotated_text, "text": sentence.text,
-                  "sentence_unique_id": str(text_id) + "_" + str(sentence_id)}
         results = self.execute_query(sentence_query, params)
+
+        tag_occurrence_query = """
+        MATCH (sentence:Sentence) WHERE id(sentence) = $sentence_id
+        WITH sentence, $tag_occurrences as tags
+        FOREACH ( idx IN range(0,size(tags)-2) |
+            MERGE (tagOccurrence1:TagOccurrence {id: tags[idx].id})
+        SET tagOccurrence1 = tags[idx]
+            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence1)
+            MERGE (tagOccurrence2:TagOccurrence {id: tags[idx + 1].id})
+        SET tagOccurrence2 = tags[idx + 1]
+            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence2)
+            MERGE (tagOccurrence1)-[r:HAS_NEXT {sentence: sentence.id}]->(tagOccurrence2))
+        RETURN id(sentence) as result
+        """
+
+        tag_occurrence_with_tag_query = """
+        MATCH (sentence:Sentence) WHERE id(sentence) = $sentence_id
+        WITH sentence, $tag_occurrences as tags
+        FOREACH ( idx IN range(0,size(tags)-2) |
+            MERGE (tagOccurrence1:TagOccurrence {id: tags[idx].id})
+        SET tagOccurrence1 = tags[idx]
+            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence1)
+            MERGE (tagOccurrence2:TagOccurrence {id: tags[idx + 1].id})
+        SET tagOccurrence2 = tags[idx + 1]
+            MERGE (sentence)-[:HAS_TOKEN]->(tagOccurrence2)
+            MERGE (tagOccurrence1)-[r:HAS_NEXT {sentence: sentence.id}]->(tagOccurrence2))
+        FOREACH (tagItem in [tag_occurrence IN $tag_occurrences WHERE tag_occurrence.is_stop = False] | 
+            MERGE (tag:Tag {id: tagItem.lemma}) 
+            MERGE (tagOccurrence:TagOccurrence {id: tagItem.id}) 
+            MERGE (tag)<-[:REFERS_TO]-(tagOccurrence))
+        RETURN id(sentence) as result
+        """
+
         node_sentence_id = results[0]
         tag_occurrences = []
+
         for token in sentence:
             lexeme = self.nlp.vocab[token.text]
             if not lexeme.is_punct and not lexeme.is_space:
@@ -99,6 +110,8 @@ class GraphBasedNLP(GraphDBBase):
     def execute_query(self, query, params):
         results = []
         with self.get_session() as session:
+            print("Executing query:\n", query)
+            print("with params: ", params)
             for items in session.run(query, params):
                 item = items["result"]
                 results.append(item)
