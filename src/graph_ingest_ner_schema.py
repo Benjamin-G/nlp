@@ -27,6 +27,11 @@ class GraphBasedNLP(GraphDBBase):
         j = 0
         for chunk in pd.read_csv(file, header=None, sep="\t", chunksize=10 ** 3):
             print(chunk.info())
+            # TODO concurrent
+            # with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            #         executor.map(download_site, sites)
+            # text = chunk[6].tolist()
+            # print(text)
             for text_line in chunk[6]:
                 j += 1
                 self.tokenize_and_store(text_line, j, store_tag)
