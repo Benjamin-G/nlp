@@ -4,6 +4,7 @@ import spacy
 
 from src.graphdb_base import GraphDBBase
 from src.text_processing_knowledge_graph import TextProcessor
+from src.utils import get_data_path
 
 
 class GraphBasedNLP(GraphDBBase):
@@ -22,14 +23,14 @@ class GraphBasedNLP(GraphDBBase):
         self.execute_without_exception("CREATE CONSTRAINT ON (l:AnnotatedText) ASSERT (l.id) IS NODE KEY")
         self.execute_without_exception("CREATE CONSTRAINT ON (l:NamedEntity) ASSERT (l.id) IS NODE KEY")
 
-    def import_masc(self, file):
+    def import_masc(self, file, store_tag):
         j = 0
         for chunk in pd.read_csv(file, header=None, sep="\t", chunksize=10 ** 3):
             df = chunk
             for record in df.to_dict("records"):
-                record.copy()
+                row = record.copy()
                 j += 1
-                # self.tokenize_and_store(row[6],j,False)
+                self.tokenize_and_store(row[6], j, store_tag)
                 if j % 1000 == 0:
                     print(j, "lines processed")
 
@@ -74,7 +75,7 @@ class GraphBasedNLP(GraphDBBase):
 
 
 def run_ingest_tag_with_inferred_knowledge():
-    basic_nlp = GraphBasedNLP("spacyner")
+    basic_nlp = GraphBasedNLP("spacy-ner")
     store_tag = False
     basic_nlp.create_constraints_with_inferred_knowledge()
     sentences = [
@@ -88,5 +89,14 @@ def run_ingest_tag_with_inferred_knowledge():
     basic_nlp.close()
 
 
+def run_ingest_masc():
+    basic_nlp = GraphBasedNLP("masc-ner")
+    store_tag = False
+    basic_nlp.create_constraints()
+    basic_nlp.import_masc(get_data_path("masc_sentences.tsv"), store_tag)
+    basic_nlp.close()
+
+
 if __name__ == "__main__":
-    run_ingest_tag_with_inferred_knowledge()
+    # run_ingest_tag_with_inferred_knowledge()
+    run_ingest_masc()
