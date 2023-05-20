@@ -99,12 +99,12 @@ class TextProcessor:
     def store_entities(self, document_id, nes):
         ne_query = """
             UNWIND $nes as item
-            MERGE (ne:NamedEntity {id: toString($documentId) + "_" + toString(item.start_index)})
+                MERGE (ne:NamedEntity {id: toString($documentId) + "_" + toString(item.start_index)})
             SET ne.type = item.type, ne.value = item.value, ne.index = item.start_index
             WITH ne, item as neIndex
             MATCH (text:AnnotatedText)-[:CONTAINS_SENTENCE]->(sentence:Sentence)-[:HAS_TOKEN]->(tagOccurrence:TagOccurrence)
             WHERE text.id = $documentId AND tagOccurrence.index >= neIndex.start_index AND tagOccurrence.index < neIndex.end_index
-            MERGE (ne)<-[:PARTICIPATES_IN]-(tagOccurrence)
+                MERGE (ne)<-[:PARTICIPATES_IN]-(tagOccurrence)
         """
         self.execute_query(ne_query, {"documentId": document_id, "nes": nes})
 
@@ -119,13 +119,13 @@ class TextProcessor:
 
     def store_coref(self, document_id, corefs):
         coref_query = """
-                MATCH (document:AnnotatedText)
-                WHERE document.id = $documentId 
-                WITH document
-                UNWIND $corefs as coref  
-                MATCH (document)-[*3..3]->(start:NamedEntity), (document)-[*3..3]->(end:NamedEntity) 
-                WHERE start.index = coref.from_index AND end.index = coref.to_index
-                MERGE (start)-[:MENTIONS]->(end)
+        MATCH (document:AnnotatedText)
+            WHERE document.id = $documentId 
+        WITH document
+            UNWIND $corefs as coref  
+        MATCH (document)-[*3..3]->(start:NamedEntity), (document)-[*3..3]->(end:NamedEntity) 
+            WHERE start.index = coref.from_index AND end.index = coref.to_index
+            MERGE (start)-[:MENTIONS]->(end)
         """
         self.execute_query(coref_query,
                            {"documentId": document_id, "corefs": corefs})
@@ -152,7 +152,8 @@ class TextProcessor:
         self.store_keywords(text_id, keywords)
 
     def create_annotated_text(self, doc, id):
-        query = """MERGE (ann:AnnotatedText {id: $id})
+        query = """
+        MERGE (ann:AnnotatedText {id: $id})
             RETURN id(ann) as result
         """
         params = {"id": id}
@@ -160,46 +161,47 @@ class TextProcessor:
         return results[0]
 
     def process_dependencies(self, tag_occurrence_dependencies):
-        tag_occurrence_query = """UNWIND $dependencies as dependency
+        tag_occurrence_query = """
+        UNWIND $dependencies as dependency
             MATCH (source:TagOccurrence {id: dependency.source})
             MATCH (destination:TagOccurrence {id: dependency.destination})
             MERGE (source)-[:IS_DEPENDENT {type: dependency.type}]->(destination)
-                """
+        """
         self.execute_query(tag_occurrence_query, {"dependencies": tag_occurrence_dependencies})
 
     def store_keywords(self, document_id, keywords):
         ne_query = """
             UNWIND $keywords as keyword
-            MERGE (kw:Keyword {id: keyword.id})
-            SET kw.NE = keyword.NE, kw.index = keyword.start_index, kw.endIndex = keyword.end_index
+                MERGE (kw:Keyword {id: keyword.id})
+                SET kw.NE = keyword.NE, kw.index = keyword.start_index, kw.endIndex = keyword.end_index
             WITH kw, keyword
             MATCH (text:AnnotatedText)
-            WHERE text.id = $documentId
-            MERGE (text)<-[:DESCRIBES {rank: keyword.rank}]-(kw)
+                WHERE text.id = $documentId
+                MERGE (text)<-[:DESCRIBES {rank: keyword.rank}]-(kw)
         """
         self.execute_query(ne_query, {"documentId": document_id, "keywords": keywords})
 
     def build_entities_inferred_graph(self, document_id):
         extract_direct_entities_query = """
             MATCH (document:AnnotatedText)
-            WHERE document.id = $documentId
+                WHERE document.id = $documentId
             WITH document
-            MATCH (document)-[*3..3]->(ne:NamedEntity)
-            WHERE NOT ne.type IN ['NP', 'NUMBER', 'DATE']
+                MATCH (document)-[*3..3]->(ne:NamedEntity)
+                WHERE NOT ne.type IN ['NP', 'NUMBER', 'DATE']
             WITH ne
-            MERGE (entity:Entity {type: ne.type, id:ne.value})
-            MERGE (ne)-[:REFERS_TO {type: "evoke"}]->(entity)
+                MERGE (entity:Entity {type: ne.type, id:ne.value})
+                MERGE (ne)-[:REFERS_TO {type: "evoke"}]->(entity)
         """
 
         extract_indirect_entities_query = """
             MATCH (document:AnnotatedText)
-            WHERE document.id = $documentId
+                WHERE document.id = $documentId
             WITH document
-            MATCH (document)-[*3..3]->(ne:NamedEntity)<-[:MENTIONS]-(mention)
-            WHERE NOT ne.type IN ['NP', 'NUMBER', 'DATE']
+                MATCH (document)-[*3..3]->(ne:NamedEntity)<-[:MENTIONS]-(mention)
+                WHERE NOT ne.type IN ['NP', 'NUMBER', 'DATE']
             WITH ne, mention
-            MERGE (entity:Entity {type: ne.type, id:ne.value})
-            MERGE (mention)-[:REFERS_TO {type: "access"}]->(entity)
+                MERGE (entity:Entity {type: ne.type, id:ne.value})
+                MERGE (mention)-[:REFERS_TO {type: "access"}]->(entity)
         """
         self.execute_query(extract_direct_entities_query, {"documentId": document_id})
         self.execute_query(extract_indirect_entities_query, {"documentId": document_id})
@@ -207,36 +209,36 @@ class TextProcessor:
     def extract_relationships(self, document_id, rules):
         extract_relationships_query = """
             MATCH (document:AnnotatedText)
-            WHERE document.id = $documentId
+                WHERE document.id = $documentId
             WITH document
             UNWIND $rules as rule
-            MATCH (document)-[*2..2]->(verb:TagOccurrence {pos: "VBD"})
-            MATCH (verb:TagOccurrence {pos: "VBD"})
+                MATCH (document)-[*2..2]->(verb:TagOccurrence {pos: "VBD"})
+                MATCH (verb:TagOccurrence {pos: "VBD"})
             WHERE verb.lemma IN rule.verbs
             WITH verb, rule
             MATCH (verb)-[:IS_DEPENDENT {type:"nsubj"}]->(subject)-[:PARTICIPATES_IN]->(subjectNe:NamedEntity)
-            WHERE subjectNe.type IN rule.subjectTypes
+                WHERE subjectNe.type IN rule.subjectTypes
             MATCH (verb)-[:IS_DEPENDENT {type:"dobj"}]->(object)-[:PARTICIPATES_IN]->(objectNe:NamedEntity {type: "WORK_OF_ART"})
-            WHERE objectNe.type IN rule.objectTypes
+                WHERE objectNe.type IN rule.objectTypes
             WITH verb, subjectNe, objectNe, rule
-            MERGE (subjectNe)-[:IS_RELATED_TO {root: verb.lemma, type: rule.type}]->(objectNe)
+                MERGE (subjectNe)-[:IS_RELATED_TO {root: verb.lemma, type: rule.type}]->(objectNe)
         """
         self.execute_query(extract_relationships_query, {"documentId": document_id, "rules": rules})
 
     def build_relationships_inferred_graph(self, document_id):
         extract_relationships_query = """
             MATCH (document:AnnotatedText)
-            WHERE document.id = $documentId
+                WHERE document.id = $documentId
             WITH document
             MATCH (document)-[*2..3]->(ne1:NamedEntity)
             MATCH (entity1:Entity)<-[:REFERS_TO]-(ne1:NamedEntity)-[r:IS_RELATED_TO]->(ne2:NamedEntity)-[:REFERS_TO]->(entity2:Entity)
-            MERGE (evidence:Evidence {id: id(r), type:r.type})
-            MERGE (rel:Relationship {id: id(r), type:r.type})
-            MERGE (ne1)<-[:SOURCE]-(evidence)
-            MERGE (ne2)<-[:DESTINATION]-(evidence)
-            MERGE (rel)-[:HAS_EVIDENCE]->(evidence)
-            MERGE (entity1)<-[:FROM]-(rel)
-            MERGE (entity2)<-[:TO]-(rel)
+                MERGE (evidence:Evidence {id: id(r), type:r.type})
+                MERGE (rel:Relationship {id: id(r), type:r.type})
+                MERGE (ne1)<-[:SOURCE]-(evidence)
+                MERGE (ne2)<-[:DESTINATION]-(evidence)
+                MERGE (rel)-[:HAS_EVIDENCE]->(evidence)
+                MERGE (entity1)<-[:FROM]-(rel)
+                MERGE (entity2)<-[:TO]-(rel)
         """
         self.execute_query(extract_relationships_query, {"documentId": document_id})
 

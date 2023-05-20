@@ -22,15 +22,27 @@ class GraphBasedNLP(GraphDBBase):
         self.execute_without_exception("CREATE CONSTRAINT ON (l:AnnotatedText) ASSERT (l.id) IS NODE KEY")
         self.execute_without_exception("CREATE CONSTRAINT ON (l:NamedEntity) ASSERT (l.id) IS NODE KEY")
         self.execute_without_exception("CREATE CONSTRAINT ON (l:Entity) ASSERT (l.type, l.id) IS NODE KEY")
+        self.execute_without_exception("CREATE CONSTRAINT ON (l:Evidence) ASSERT (l.id) IS NODE KEY")
+        self.execute_without_exception("CREATE CONSTRAINT ON (l:Relationship) ASSERT (l.id) IS NODE KEY")
 
-    def tokenize_and_store(self, text, text_id, storeTag):
+    def tokenize_and_store(self, text, text_id, store_tag):
         docs = self.nlp.pipe([text])
         for doc in docs:
             annotated_text = self.__text_processor.create_annotated_text(doc, text_id)
-            spans = self.__text_processor.process_sentences(annotated_text, doc, storeTag, text_id)
+            spans = self.__text_processor.process_sentences(annotated_text, doc, store_tag, text_id)
             self.__text_processor.process_entities(spans, text_id)
             self.__text_processor.process_coreference(doc, text_id)
             self.__text_processor.build_entities_inferred_graph(text_id)
+            rules = [
+                {
+                    "type": "RECEIVE_PRIZE",
+                    "verbs": ["receive"],
+                    "subjectTypes": ["PERSON", "NP"],
+                    "objectTypes": ["WORK_OF_ART"],
+                },
+            ]
+            self.__text_processor.extract_relationships(text_id, rules)
+            self.__text_processor.build_relationships_inferred_graph(text_id)
 
 
 if __name__ == "__main__":
