@@ -26,12 +26,11 @@ class GraphBasedNLP(GraphDBBase):
     def import_masc(self, file, store_tag):
         j = 0
         for chunk in pd.read_csv(file, header=None, sep="\t", chunksize=10 ** 3):
-            df = chunk
-            for record in df.to_dict("records"):
-                row = record.copy()
+            print(chunk.info())
+            for text_line in chunk[6]:
                 j += 1
-                self.tokenize_and_store(row[6], j, store_tag)
-                if j % 1000 == 0:
+                self.tokenize_and_store(text_line, j, store_tag)
+                if j % 100 == 0:
                     print(j, "lines processed")
 
         print(j, "total lines")
