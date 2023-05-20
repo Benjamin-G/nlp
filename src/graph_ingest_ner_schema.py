@@ -42,6 +42,7 @@ class GraphBasedNLP(GraphDBBase):
             spans = self.__text_processor.process_sentences(annotated_text, doc, store_tag, text_id)
             self.__text_processor.process_entities(spans, text_id)
             self.__text_processor.process_coreference(doc, text_id)
+            self.__text_processor.build_entities_inferred_graph(text_id)
 
     def create_constraints_with_inferred_knowledge(self):
         self.execute_without_exception("CREATE CONSTRAINT ON (u:Tag) ASSERT (u.id) IS NODE KEY")
@@ -53,7 +54,7 @@ class GraphBasedNLP(GraphDBBase):
         self.execute_without_exception("CREATE CONSTRAINT ON (l:Evidence) ASSERT (l.id) IS NODE KEY")
         self.execute_without_exception("CREATE CONSTRAINT ON (l:Relationship) ASSERT (l.id) IS NODE KEY")
 
-    def tokenize_and_store_with_inferred_knowledge(self, text, text_id, store_tag):
+    def tokenize_and_store_with_extract_relationships(self, text, text_id, store_tag):
         docs = self.nlp.pipe([text])
         for doc in docs:
             annotated_text = self.__text_processor.create_annotated_text(doc, text_id)
@@ -61,6 +62,7 @@ class GraphBasedNLP(GraphDBBase):
             self.__text_processor.process_entities(spans, text_id)
             self.__text_processor.process_coreference(doc, text_id)
             self.__text_processor.build_entities_inferred_graph(text_id)
+            # WHERE verb.lemma IN rule.verbs
             rules = [
                 {
                     "type": "RECEIVE_PRIZE",
@@ -73,7 +75,7 @@ class GraphBasedNLP(GraphDBBase):
             self.__text_processor.build_relationships_inferred_graph(text_id)
 
 
-def run_ingest_tag_with_inferred_knowledge():
+def run_ingest_tag_with_extract_relationships():
     basic_nlp = GraphBasedNLP("spacy-ner")
     store_tag = False
     basic_nlp.create_constraints_with_inferred_knowledge()
@@ -83,7 +85,7 @@ def run_ingest_tag_with_inferred_knowledge():
         "President Barack Obama was born in Hawaii.  He was elected president in 2008.",
     ]
     for idx, x in enumerate(sentences):
-        basic_nlp.tokenize_and_store_with_inferred_knowledge(x, idx, store_tag)
+        basic_nlp.tokenize_and_store_with_extract_relationships(x, idx, store_tag)
 
     basic_nlp.close()
 
