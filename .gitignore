@@ -142,3 +142,7 @@ dmypy.json
 /data/masc_word_sense_sentence_corpus/
 /data/masc_500k_texts.zip
 /data/masc_sentences_2.tsv
+/.local/
+/.jupyter/
+/.ipython/
+/.npm/
