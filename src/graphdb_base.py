@@ -10,7 +10,7 @@ class GraphDBBase:
 
         uri = "bolt://localhost:7687"
         user = os.getenv("NEO4J_USER")
-        password = os.getenv("NEO4J_PASSWORD")
+        password = os.getenv("NEO4J_PASSWORD_")
 
         self._driver = GraphDatabase.driver(uri, auth=(user, password))
         self._session = None
