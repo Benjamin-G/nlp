@@ -146,3 +146,5 @@ dmypy.json
 /.jupyter/
 /.ipython/
 /.npm/
+/.scala_history
+/.ivy2/
