@@ -87,7 +87,7 @@ def run_ingest_tag_with_extract_relationships():
     sentences = [
         "Marie Curie received the Nobel Prize in Physics in 1903. " +
         "She became the first woman to win the prize and the first person—man or woman—to win the award twice.",
-        "President Barack Obama was born in Hawaii.  He was elected president in 2008.",
+        # "President Barack Obama was born in Hawaii.  He was elected president in 2008.",
     ]
     for idx, x in enumerate(sentences):
         basic_nlp.tokenize_and_store_with_extract_relationships(x, idx, store_tag)
