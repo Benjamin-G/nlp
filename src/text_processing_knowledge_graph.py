@@ -2,6 +2,7 @@ class TextProcessor:
     def __init__(self, nlp, get_session):
         self.nlp = nlp
         self.get_session = get_session
+        print(self.nlp.analyze_pipes(pretty=True))
 
     def create_annotated_text(self, doc, id):
         query = """MERGE (ann:AnnotatedText {id: $id})

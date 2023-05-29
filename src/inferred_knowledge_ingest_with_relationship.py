@@ -32,6 +32,7 @@ class GraphBasedNLP(GraphDBBase):
             #         executor.map(download_site, sites)
             # text = chunk[6].tolist()
             # print(text)
+            # df = chunk
             for text_line in chunk[6]:
                 j += 1
                 self.tokenize_and_store(text_line, j, store_tag)
