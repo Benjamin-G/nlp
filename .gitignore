@@ -148,3 +148,4 @@ dmypy.json
 /.npm/
 /.scala_history
 /.ivy2/
+/src/dask-worker-space/

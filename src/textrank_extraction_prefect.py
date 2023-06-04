@@ -1,4 +1,5 @@
 import pandas as pd
+import pynvml
 import pytextrank
 import spacy
 from prefect import flow, task
@@ -30,7 +31,22 @@ def create_constraints(graph_db: GraphDBBase):
 
 
 @flow(task_runner=DaskTaskRunner(), validate_parameters=False)
-def run_nlp_pipeline_dask_task_runner(file, nlp, text_processor):
+def run_nlp_pipeline_dask_task_runner():
+    spacy.prefer_gpu()
+    print("Running NLP pipeline")
+    graph_db = GraphDBBase("textrank-spacy-prefect")
+    create_constraints(graph_db)
+
+    # Load the spacy model
+    print(pytextrank.__version__)
+    nlp = spacy.load("en_core_web_sm")
+    nlp.add_pipe("textrank")
+
+    # Create the text processor
+    text_processor = TextProcessor(nlp, graph_db.get_session)
+
+    # Run the pipeline
+    file = get_data_path("wiki_movie_plots_deduped.csv")
     j = 0
     for chunk in pd.read_csv(file,
                              header=None,
@@ -41,6 +57,7 @@ def run_nlp_pipeline_dask_task_runner(file, nlp, text_processor):
         for text_line in chunk[7]:
             j += 1
             tokenize_and_store.submit(text_line, j, False, nlp, text_processor)
+            # return
             if j % 100 == 0:
                 print(j, "lines processed")
 
@@ -82,4 +99,6 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    pynvml.nvmlInit()
+    print(pynvml.nvmlDeviceGetCount())
+    run_nlp_pipeline_dask_task_runner()
