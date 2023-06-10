@@ -58,10 +58,26 @@ class GraphBasedNLP(GraphDBBase):
             # self.process_coreference(doc, text_id)
             self.__text_processor.process_textrank(doc, text_id)
 
+    def create_co_occurrence_graph(self):
+        query = """
+        MATCH (k:Keyword)-[:DESCRIBES]->(text:AnnotatedText)
+        WITH k, count(DISTINCT text) AS keyWeight
+        WHERE keyWeight > 5
+        WITH k, keyWeight
+        MATCH (k)-[:DESCRIBES]->(text)<-[:DESCRIBES]-(k2:Keyword)
+        WHERE k <> k2
+        WITH k, k2, count(DISTINCT text) AS weight, keyWeight
+        WHERE weight > 10
+        WITH k, k2, k.value as kValue, k2.value as k2Value, weight, (1.0f*weight)/keyWeight  as normalizedWeight
+        CREATE (k)-[:CO_OCCUR {weight: weight, normalizedWeight: normalizedWeight}]-> (k2)  
+        """
+        self.execute_without_exception(query)
+
 
 if __name__ == "__main__":
     basic_nlp = GraphBasedNLP("textrank-spacy")
     basic_nlp.create_constraints()
     data = get_data_path("wiki_movie_plots_deduped.csv")
     basic_nlp.import_data(data)
+    basic_nlp.create_co_occurrence_graph()
     basic_nlp.close()
